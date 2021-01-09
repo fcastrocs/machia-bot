@@ -1,0 +1,197 @@
+/**
+ * Contains General code that all stores will use.
+ * Must only be extended by Store classes
+ */
+
+"use strict";
+
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
+const retry = require("retry");
+const emitter = require("../emitter");
+
+const UserItem = require("../../services/userItem");
+const Credential = require("../../services/credential");
+const StoreLogin = require("../storeLogin");
+
+// puppeteer launch options
+const launchOptions = require("../../configs/puppeteer");
+
+class Base {
+  constructor(url, store, itemId, title) {
+    this.url = url;
+    this.title = title;
+    this.store = store;
+    this.itemId = itemId;
+
+    this.browsers = new Map();
+    this.added2Cart = new Set();
+
+    emitter.emit("autobuyer-start", { url, title });
+    this.storeContext = null;
+  }
+
+  /**
+   * Starts purchase process
+   */
+  async startPurchases(storeContext) {
+    this.storeContext = storeContext;
+
+    let credentials = await this.getAllBuyerCredentials();
+    // attemp purchases
+    let promises = [];
+    for (let credential of credentials) {
+      promises.push(this.attemptPurchase(credential));
+    }
+
+    let values = await Promise.allSettled(promises);
+
+    let results = new Map();
+    results.set("fulfilled", new Array());
+    results.set("rejected", new Array());
+
+    // format message for each user
+    for (let res of values) {
+      let msg = "";
+
+      if (res.status === "fulfilled") {
+        await UserItem.remove(res.value, this.itemId, this.store);
+        results.get("fulfilled").push(res.value);
+      } else {
+        if (typeof res.reason.err === "object") {
+          res.reason.err = "Unexecpected error occurred.";
+        }
+        msg = {
+          userId: res.reason.userId,
+          err: res.reason.err,
+        };
+        results.get("rejected").push(msg);
+      }
+    }
+
+    emitter.emit("autobuy-finished", results);
+  }
+
+  async getAllBuyerCredentials() {
+    let docs = await UserItem.getAll(null, this.store, this.itemId);
+    if (docs.length === 0) {
+      throw "No user wants to buy this item";
+    }
+
+    let credentials = new Array();
+
+    for (let doc of docs) {
+      let credential = await Credential.get(doc.userId, this.store);
+      credentials.push(credential);
+    }
+    return credentials;
+  }
+
+  attemptPurchase(credential) {
+    return new Promise((resolve, reject) => {
+      let operation = retry.operation({
+        retries: process.env.PURCHASE_RETRY,
+        minTimeout: 0,
+        maxTimeout: 0,
+      });
+
+      operation.attempt(async () => {
+        let userId = credential.userId;
+        try {
+          // attempt to purchase item
+          await this.storeContext.purchase(credential);
+          await this.closeBrowser(userId);
+          resolve(userId);
+        } catch (err) {
+          console.error(err);
+          // every error is caught here
+          await this.closeBrowser(userId);
+          // try again
+          if (operation.retry(err)) {
+            return;
+          }
+          if (typeof err === "object") {
+            return reject({ userId, err: "Unexpected error occurred." });
+          }
+          reject({ userId, err });
+        }
+      });
+    });
+  }
+
+  async launchBrowser(userId, cookies) {
+    cookies = JSON.parse(cookies);
+    let browser = await puppeteer.launch(launchOptions);
+    this.browsers.set(userId, browser);
+    let page = await browser.newPage();
+    await page.setCookie(...cookies);
+    return page;
+  }
+
+  async closeBrowser(userId) {
+    let browser = this.browsers.get(userId);
+    if (!browser) return;
+    await browser.close();
+  }
+
+  async loginHandle(credential, page) {
+    let storeLogin = new StoreLogin(
+      credential.userId,
+      this.store,
+      credential.email,
+      credential.password,
+      credential.cvv,
+      page
+    );
+
+    await storeLogin.start();
+  }
+
+  addToCartHandle(userId, cookies) {
+    cookies = JSON.parse(cookies);
+    // check if already added to cart
+    if (this.added2Cart.has(userId)) {
+      return;
+    }
+
+    let operation = retry.operation({
+      retries: process.env.ADDTOCARD_RETRY,
+      minTimeout: 0,
+      maxTimeout: 0,
+    });
+
+    return new Promise((resolve, reject) => {
+      operation.attempt(async () => {
+        try {
+          await this.storeContext.addToCart(cookies);
+        } catch (error) {
+          if (operation.retry(error)) {
+            return;
+          }
+          if (typeof error === "object") {
+            console.error(error);
+            return reject("Add to cart failed.");
+          }
+          reject(error);
+        }
+
+        this.added2Cart.add(userId);
+        resolve();
+      });
+    });
+  }
+
+  cookiesToString(cookies) {
+    let string = "";
+    for (let cookie of cookies) {
+      string += `${cookie.name}=${cookie.value}; `;
+    }
+    return string;
+  }
+}
+
+Base.userAgent =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36";
+
+module.exports = Base;
