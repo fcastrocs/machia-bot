@@ -80,9 +80,8 @@ class Bestbuy extends Base {
     let input = await this.page.waitForSelector("#verificationCode");
     await input.type(code);
 
-    let btn = await this.page.type(
-      'button[data-track="Two Step Verification Code - Continue"]',
-      code
+    let btn = await this.page.waitForSelector(
+      'button[data-track="Two Step Verification Code - Continue"]'
     );
 
     let p = await Promise.all([
