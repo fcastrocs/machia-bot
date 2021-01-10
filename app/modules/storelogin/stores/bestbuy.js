@@ -91,10 +91,9 @@ class Bestbuy extends Base {
       btn.click(),
     ]);
 
-    try {
-      var res = await p[0].json();
-    } catch (error) {
-      // no response means successful login
+    let res = await p[0].json();
+
+    if (res.status === "success") {
       this.cookies = await this.page.cookies();
       return;
     }
