@@ -30,7 +30,7 @@ async function restore() {
             reject();
           }
         }, timeout);
-        timeout += 1500;
+        timeout += 1000;
       })
     );
   }
