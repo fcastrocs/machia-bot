@@ -1,7 +1,6 @@
 const Base = require("../base");
-const axios = require("axios");
-const httpsProxyAgent = require("https-proxy-agent");
-const Proxy = require("../../proxy");
+
+const ADD2CART_URL = "https://www.newegg.com/api/Add2Cart";
 
 class Newegg extends Base {
   constructor(url, itemId, title) {
@@ -109,14 +108,9 @@ class Newegg extends Base {
     customerNumber = decodeURIComponent(customerNumber);
     cookies = this.cookiesToString(cookies);
 
-    // set proxy
-    let proxy = Proxy.get();
-    const httpsAgent = new httpsProxyAgent(`http://${proxy}`);
-
-    let config = {
-      url: "https://www.newegg.com/api/Add2Cart",
-      method: "post",
-      httpsAgent,
+    let options = {
+      url: ADD2CART_URL,
+      cookies,
       data: {
         ItemList: [
           {
@@ -129,22 +123,10 @@ class Newegg extends Base {
         ],
         customerNumber,
       },
-      headers: {
-        "accept-language": "en-US,en;q=0.9,es-US;q=0.8,es;q=0.7",
-        "content-type": "application/json",
-        Cookie: cookies,
-        referer: this.url,
-        "ec-ch-ua":
-          '"Google Chrome";v="87", " Not;A Brand";v="99", "Chromium";v="87"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "user-agent": Base.userAgent,
-      },
+      origin: "https://www.newegg.com",
     };
 
-    let res = await axios.request(config);
+    let res = await this.addToCartRequest(options);
     if (res.status !== 201) {
       throw res;
     }
