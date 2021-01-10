@@ -120,12 +120,12 @@ class Base {
   }
 
   async fetch(url) {
-    let proxy = Proxy.get();
-    const httpsAgent = new httpsProxyAgent(`http://${proxy}`);
+    //let proxy = Proxy.get();
+    //const httpsAgent = new httpsProxyAgent(`http://${proxy}`);
 
     try {
       let res = await axios.get(url, {
-        httpsAgent,
+        //httpsAgent,
         timeout: process.env.SCRAPE_INTERVAL - 500,
       });
       return res.data;

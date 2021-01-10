@@ -95,7 +95,6 @@ class Base {
 
     try {
       await this.storeContext.verifyLogin(code);
-      await this.closeBrowser();
     } catch (e) {
       // close browser for any other error
       if (e === "Incorrect code, try again.") {
@@ -112,6 +111,7 @@ class Base {
       throw e;
     }
 
+    await this.closeBrowser();
     Verification.remove(this.userId);
     await this.saveCredential();
   }

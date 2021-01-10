@@ -45,13 +45,24 @@ class Bestbuy extends Base {
     ]);
 
     // get response
-    let res = await p[0].json();
+    try {
+      var res = await p[0].json();
+    } catch (error) {
+      // successful login
+      this.cookies = await this.page.cookies();
+      return;
+    }
 
-    // successful login
+    // Sometimes it sends 'success' status
     if (res.status === "success") {
       this.cookies = await this.page.cookies();
       return;
     }
+
+    if (res.status === "stepUpRequired") {
+      throw "verification";
+    }
+
     // check for credential errors
     if (res.status === "failure") {
       throw "Bad credentials, try again.";
@@ -62,7 +73,39 @@ class Bestbuy extends Base {
   }
 
   async verifyLogin(code) {
-    console.log(code);
+    if (code.length !== 6) {
+      throw "Incorrect code, try again.";
+    }
+
+    let input = await this.page.waitForSelector("#verificationCode");
+    await input.type(code);
+
+    let btn = await this.page.type(
+      'button[data-track="Two Step Verification Code - Continue"]',
+      code.charAt(0)
+    );
+
+    let p = await Promise.all([
+      this.page.waitForResponse((req) =>
+        req.url().includes("identity/verifyTwoStep")
+      ),
+      btn.click(),
+    ]);
+
+    try {
+      var res = await p[0].json();
+    } catch (error) {
+      // no response means successful login
+      this.cookies = await this.page.cookies();
+      return;
+    }
+
+    if (res.status === "failure") {
+      throw "Incorrect code, try again.";
+    }
+
+    console.error(res);
+    throw "Unexpected error, try again.";
   }
 }
 
