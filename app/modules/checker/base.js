@@ -120,14 +120,18 @@ class Base {
   }
 
   async fetch(url) {
-    //let proxy = Proxy.get();
-    //const httpsAgent = new httpsProxyAgent(`http://${proxy}`);
+    const config = {
+      timeout: process.env.SCRAPE_INTERVAL - 500,
+    };
+
+    if (process.env.NODE_ENV === "production") {
+      let proxy = Proxy.get();
+      const httpsAgent = new httpsProxyAgent(`http://${proxy}`);
+      config.httpsAgent = httpsAgent;
+    }
 
     try {
-      let res = await axios.get(url, {
-        //httpsAgent,
-        timeout: process.env.SCRAPE_INTERVAL - 500,
-      });
+      let res = await axios.get(url, config);
       return res.data;
     } catch (e) {
       console.error(e.code);
