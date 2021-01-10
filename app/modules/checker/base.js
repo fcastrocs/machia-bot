@@ -90,17 +90,8 @@ class Base {
   async getData(context) {
     this.storeContext = context;
 
-    try {
-      var res = await this.fetch(this.url);
-    } catch (e) {
-      if (typeof e === "object") {
-        console.error(e);
-        throw "Unexpected error occurred, try again.";
-      }
-      throw e;
-    }
-
-    const $ = cheerio.load(res);
+    let data = await this.fetch(this.url);
+    const $ = cheerio.load(data);
 
     try {
       this.storeContext.parse($);
@@ -134,8 +125,8 @@ class Base {
       let res = await axios.get(url, config);
       return res.data;
     } catch (e) {
-      console.error("Bestbuy scrape failed: " + e.code);
-      throw "Bad URL, try again.";
+      console.error(`${this.store} scrape failed: ${e.code}`);
+      throw "Couldn't load page, try again.";
     }
   }
 
