@@ -134,7 +134,7 @@ class Base {
       let res = await axios.get(url, config);
       return res.data;
     } catch (e) {
-      console.error(e.code);
+      console.error("Bestbuy scrape failed: " + e.code);
       throw "Bad URL, try again.";
     }
   }
