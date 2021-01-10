@@ -13,16 +13,28 @@ class Bestbuy extends Base {
 
   async purchase(credential) {
     await this.addToCartHandle(credential.userId, credential.cookies);
-    //let page = await this.launchBrowser(credential.userId, credential.cookies);
+    let page = await this.launchBrowser(credential.userId, credential.cookies);
 
     // go to shopping cart
-   // await page.goto("https://www.bestbuy.com/cart", {
-      //waitUntil: "networkidle0",
-   //});
+    await page.goto("https://www.bestbuy.com/cart");
+
+    // click check out
+    let btn = await page.waitForSelector('button[data-track="Checkout - Top"]');
+    await btn.click();
+
+    //input cvv
+    let input = await page.waitForSelector("#credit-card-cvv");
+    await input.type(credential.cvv);
+
+    //place order
+    btn = await page.waitForSelector(
+      'button[data-track="Place your Order - Contact Card"]'
+    );
+    //await btn.click();
   }
 
   async addToCart(cookies) {
-    cookies = this.cookiesToString();
+    cookies = this.cookiesToString(cookies);
 
     let options = {
       url: ADD2CART_URL,
