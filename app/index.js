@@ -63,7 +63,7 @@ bot.on("message", async (msg) => {
     }
 
     return sendDm(
-      "You can now autobuy products from" + msg[0] + ".```!autobuy URL```",
+      "You can now autobuy products from " + msg[0] + ".```!autobuy URL```",
       userId
     );
   }
