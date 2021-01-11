@@ -49,7 +49,7 @@ class Base {
 
       // don't close browser if request came from autobuyer
       if (!this.autoBuyerRequest) {
-        await this.closeBrowser();
+        //await this.closeBrowser();
       }
 
       // display what went wrong

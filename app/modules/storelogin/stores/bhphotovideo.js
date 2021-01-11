@@ -2,11 +2,11 @@
 
 const Base = require("../base");
 
-const LOGIN_URL = "https://www.bestbuy.com/identity/global/signin";
+const LOGIN_URL = "https://www.bhphotovideo.com/bnh/controller/home?O=myAccountLogIn.jsp&A=getpage&Q=Login.jsp&isLoginOnly=Y";
 
-class Bestbuy extends Base {
+class Bhphotovideo extends Base {
   constructor(userId, email, password, cvv, page) {
-    super(userId, "bestbuy", email, password, cvv, page);
+    super(userId, "bestbuy", email, password, cvv, age);
   }
 
   /**
@@ -19,52 +19,49 @@ class Bestbuy extends Base {
   async login() {
     if (!this.autoBuyerRequest) {
       await this.launchBrowser();
-      await this.page.goto(LOGIN_URL);
+      await this.page.goto(LOGIN_URL, { waitUntil: "networkidle0" });
+    }
+
+    // hover over account box
+    await this.page.waitForSelector(".user.login-account");
+    await this.page.hover(".user.login-account");
+
+    await this.page.waitForTimeout(1500);
+
+    // open login modal
+    let [btn] = await this.page.$x("//button[contains(., 'Log In')]");
+    if (btn) {
+      await btn.click();
     }
 
     // Enter email
-    let input = await this.page.waitForSelector("#fld-e");
+    let input = await this.page.waitForSelector("#user-input");
     await input.type(this.email);
 
     // Enter password
-    input = await this.page.waitForSelector("#fld-p1");
+    input = await this.page.waitForSelector("#password-input");
     await input.type(this.password);
 
-    // Remember me checkbox
-    input = await this.page.waitForSelector("#ca-remember-me");
-    await input.click();
-
-    let btn = await this.page.waitForSelector("[data-track='Sign In']");
+    btn = await this.page.waitForSelector('input[data-selenium="submitBtn"]');
 
     //click submit button
     let p = await Promise.all([
       this.page.waitForResponse((req) =>
-        req.url().includes("identity/authenticate")
+        req.url().includes("?Q=json&A=logMeIn&O=")
       ),
       await btn.click(),
     ]);
 
-    // get response
     try {
       var res = await p[0].json();
     } catch (error) {
+      console.log(await p[0].status());
       // successful login
       this.cookies = await this.page.cookies();
       return;
     }
 
-    // Sometimes it sends 'success' status
-    if (res.status === "success") {
-      this.cookies = await this.page.cookies();
-      return;
-    }
-
-    if (res.status === "stepUpRequired") {
-      throw "verification";
-    }
-
-    // check for credential errors
-    if (res.status === "failure") {
+    if (res.status === "error") {
       throw "Bad credentials, try again.";
     }
 
@@ -91,14 +88,7 @@ class Bestbuy extends Base {
       btn.click(),
     ]);
 
-    //sometimes request doesn't return anything and this json() throws.
-    try {
-      var res = await p[0].json();
-    } catch (e) {
-      //successful verify
-      this.cookies = await this.page.cookies();
-      return;
-    }
+    let res = await p[0].json();
 
     if (res.status === "success") {
       this.cookies = await this.page.cookies();
@@ -114,4 +104,4 @@ class Bestbuy extends Base {
   }
 }
 
-module.exports = Bestbuy;
+module.exports = Bhphotovideo;
