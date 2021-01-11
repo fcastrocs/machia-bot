@@ -49,7 +49,7 @@ class Base {
 
       // don't close browser if request came from autobuyer
       if (!this.autoBuyerRequest) {
-        //await this.closeBrowser();
+        await this.closeBrowser();
       }
 
       // display what went wrong
@@ -59,6 +59,12 @@ class Base {
       }
       throw e;
     }
+
+    // don't close browser if request came from autobuyer
+    if (!this.autoBuyerRequest) {
+      await this.closeBrowser();
+    }
+
     // login successful
     await this.saveCredential();
   }
