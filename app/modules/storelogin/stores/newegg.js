@@ -25,7 +25,9 @@ class Newegg extends Base {
     }
 
     // Enter email
-    let input = await this.page.waitForSelector("input[name=signEmail]");
+    let input = await this.page.waitForSelector("input[name=signEmail]", {
+      visible: true,
+    });
     await input.type(this.email);
 
     //click submit button
@@ -55,22 +57,35 @@ class Newegg extends Base {
     }
 
     // Enter password
-    input = await this.page.waitForSelector("input[name=password]");
+    input = await this.page.waitForSelector("input[name=password]", {
+      visible: true,
+    });
     await input.type(this.password);
 
+    let verification = this.page.waitForResponse((req) =>
+      req.url().includes("identity/2sverification")
+    );
+
     // click submit button
-    p = await Promise.all([
+    p = await Promise.allSettled([
       this.page.waitForResponse((req) => req.url().includes("SignIn?ticket")),
       this.page.click("button[type=submit]"),
     ]);
 
-    // empty response means a successfull login
     try {
       res = await p[0].json();
     } catch (e) {
-      // login successfull
-      this.cookies = await this.page.cookies();
-      return;
+      var noresponse = true;
+    }
+
+    // empty response means either 2FA or successfull login, require 2FA
+    if (noresponse) {
+      try {
+        await verification;
+        throw "verification";
+      } catch (e) {
+        throw "For your security, setup 2FA to your account, try again.";
+      }
     }
 
     if (res.Result === "SignInFailure") {

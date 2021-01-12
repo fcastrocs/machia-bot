@@ -121,6 +121,7 @@ class Base {
     Verification.remove(this.userId);
     await this.saveCredential();
   }
+
 }
 
 // puppeteer launch options
