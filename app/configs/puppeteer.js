@@ -7,7 +7,7 @@ const options = {
 if (process.env.NODE_ENV === "production") {
   options.headless = true;
 } else {
-  options.headless = true;
+  options.headless = false;
 }
 
 options.args = [
