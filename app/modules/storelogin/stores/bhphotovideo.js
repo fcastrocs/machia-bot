@@ -2,11 +2,11 @@
 
 const Base = require("../base");
 
-const LOGIN_URL = "https://www.bhphotovideo.com/bnh/controller/home?O=myAccountLogIn.jsp&A=getpage&Q=Login.jsp&isLoginOnly=Y";
+const LOGIN_URL = "https://www.bhphotovideo.com";
 
 class Bhphotovideo extends Base {
   constructor(userId, email, password, cvv, page) {
-    super(userId, "bestbuy", email, password, cvv, age);
+    super(userId, "bhphotovideo", email, password, cvv, page);
   }
 
   /**
@@ -55,7 +55,6 @@ class Bhphotovideo extends Base {
     try {
       var res = await p[0].json();
     } catch (error) {
-      console.log(await p[0].status());
       // successful login
       this.cookies = await this.page.cookies();
       return;
@@ -70,37 +69,8 @@ class Bhphotovideo extends Base {
   }
 
   async verifyLogin(code) {
-    if (code.length !== 6) {
-      throw "Incorrect code, try again.";
-    }
-
-    let input = await this.page.waitForSelector("#verificationCode");
-    await input.type(code);
-
-    let btn = await this.page.waitForSelector(
-      'button[data-track="Two Step Verification Code - Continue"]'
-    );
-
-    let p = await Promise.all([
-      this.page.waitForResponse((req) =>
-        req.url().includes("identity/verifyTwoStep")
-      ),
-      btn.click(),
-    ]);
-
-    let res = await p[0].json();
-
-    if (res.status === "success") {
-      this.cookies = await this.page.cookies();
-      return;
-    }
-
-    if (res.status === "failure") {
-      throw "Incorrect code, try again.";
-    }
-
-    console.error(res);
-    throw "Unexpected error, try again.";
+    console.log(code);
+    return;
   }
 }
 

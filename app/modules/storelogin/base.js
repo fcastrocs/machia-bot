@@ -59,13 +59,13 @@ class Base {
       }
       throw e;
     }
+    // login successful
 
     // don't close browser if request came from autobuyer
     if (!this.autoBuyerRequest) {
       await this.closeBrowser();
     }
 
-    // login successful
     await this.saveCredential();
   }
 

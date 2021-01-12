@@ -125,7 +125,7 @@ class Base {
       let res = await axios.get(url, config);
       return res.data;
     } catch (e) {
-      console.error(`${this.store} scrape failed: ${e.code}`);
+      console.error(`${this.store} scrape failed: ${e}`);
       throw "Couldn't load page, try again.";
     }
   }
@@ -140,7 +140,10 @@ class Base {
 
   setValues(title, itemId, outOfStock) {
     this.title = title;
-    this.itemId = itemId;
+    //parsed from url
+    if (itemId) {
+      this.itemId = itemId;
+    }
     this.outOfStock = outOfStock;
   }
 }
