@@ -6,6 +6,7 @@ let userItem = new Schema({
   itemId: { type: String, ref: "Job", required: true },
   store: { type: String, required: true },
   url: { type: String, required: true },
+  title: { type: String, required: true },
 });
 
 // compound index

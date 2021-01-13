@@ -3,6 +3,7 @@ const Credential = require("../services/credential");
 const UserItem = require("../services/userItem");
 const Store = require("../modules/store");
 const Checker = require("../modules/checker");
+const CheckerService = require("../services/checker");
 
 /**
  * Restore all jobs
@@ -66,7 +67,7 @@ async function start(userId, url) {
     if (await UserItem.has(userId, checker.itemId, store)) {
       throw "You already have this product on auto-buy.";
     }
-    await UserItem.add(userId, checker.itemId, store, url);
+    await UserItem.add(userId, checker.itemId, store, url, checker.title);
     return;
   }
 
@@ -74,7 +75,7 @@ async function start(userId, url) {
 
   if (userId) {
     await Job.add(checker.itemId, store, url);
-    await UserItem.add(userId, checker.itemId, store, url);
+    await UserItem.add(userId, checker.itemId, store, url, checker.title);
   }
 }
 
@@ -90,7 +91,7 @@ async function stop(userId, store, itemId) {
     throw "I am not tracking this item.";
   }
 
-  if (!Checker.has(store, itemId)) {
+  if (!CheckerService.has(store, itemId)) {
     throw "Checker doesn't exist.";
   }
 
@@ -107,8 +108,8 @@ async function stop(userId, store, itemId) {
   // no one else wants to buy this item
   await Job.remove(itemId, store);
   await UserItem.remove(userId, itemId, store);
-  let checker = Checker.remove(store, itemId);
-  checker.clearInterval();
+  let checker = CheckerService.remove(store, itemId);
+  checker.stop();
 }
 
 /**
@@ -137,4 +138,21 @@ async function list() {
   return map;
 }
 
-module.exports = { restore, start, stop, list };
+async function myList(userId, store) {
+  let array = [];
+
+  let docs = await UserItem.getAll(userId, store);
+
+  for (let doc of docs) {
+    let obj = {
+      itemId: doc.itemId,
+      title: doc.title,
+      url: doc.url,
+    };
+
+    array.push(obj);
+  }
+  return array;
+}
+
+module.exports = { restore, start, stop, list, myList };

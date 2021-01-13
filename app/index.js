@@ -63,7 +63,7 @@ bot.on("message", async (msg) => {
     }
 
     return sendDm(
-      "You can now autobuy products from " + msg[0] + ".```!autobuy URL```",
+      "You can now autobuy products from " + msg[0] + ".```!start URL```",
       userId
     );
   }
@@ -85,36 +85,36 @@ bot.on("message", async (msg) => {
       return sendDm(e, userId);
     }
     return sendDm(
-      "You can now auto-buy products from this store.```!autobuy URL```",
+      "You can now auto-buy products from this store.```!start URL```",
       userId
     );
   }
 
-  if (msg.includes("!autobuy")) {
-    if (msg === "!autobuy") {
-      return sendDm("Usage: ```!autobuy URL```", userId);
+  if (msg.includes("!start")) {
+    if (msg === "!start") {
+      return sendDm("Usage: ```!start URL```", userId);
     }
 
-    let url = msg.replace("!autobuy ", "");
+    let url = msg.replace("!start ", "");
 
-    sendDm("Creating auto-buy...", userId);
+    sendDm("Starting auto-buy...", userId);
 
     try {
       await Job.start(userId, url);
     } catch (e) {
       return sendDm(e, userId);
     }
-    return sendDm("Auto-buy successfully set.", userId);
+    return sendDm("Auto-buy successfully started.", userId);
   }
 
-  if (msg.includes("!stopautobuy")) {
-    let usage = "Usage:```!stopautobuy store itemID```";
+  if (msg.includes("!stop")) {
+    let usage = "Usage:```!stop store itemID```";
 
-    if (msg === "!stopautobuy") {
+    if (msg === "!stop") {
       return sendDm(usage, userId);
     }
 
-    msg = msg.replace("!stopautobuy ", "");
+    msg = msg.replace("!stop ", "");
     msg = msg.split(" ");
 
     if (msg.length !== 2) {
@@ -127,6 +127,33 @@ bot.on("message", async (msg) => {
       sendDm(e, userId);
     }
     return sendDm("Auto-buy successfully stopped.", userId);
+  }
+
+  if (msg.includes("!mylist")) {
+    if (msg === "!mylist") {
+      return sendDm("Usage: ```!mylist store```", userId);
+    }
+
+    let store = msg.replace("!mylist ", "");
+
+    let list = await Job.myList(userId, store);
+    if (list.length === 0) {
+      return sendDm(
+        "You don't have any items on auto-buy for this store.",
+        userId
+      );
+    }
+
+    for (let item of list) {
+      const embed = {
+        title: item.title,
+        description: `Item ID: ${item.itemId}`,
+        url: item.url,
+        //color: 12745742,
+      };
+      sendDm({ embed }, userId);
+    }
+    return;
   }
 
   if (msg === "!list") {
@@ -154,7 +181,7 @@ function sendMessage(msg) {
 }
 
 function sendDm(msg, userId) {
-  console.log(msg)
+  console.log(msg);
   try {
     bot.users.cache.get(userId).send(msg);
   } catch (error) {

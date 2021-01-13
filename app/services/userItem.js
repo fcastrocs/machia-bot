@@ -1,8 +1,8 @@
 "use strict";
 const UserItem = require("../models/userItem");
 
-async function add(userId, itemId, store, url) {
-  let userItem = new UserItem({ userId, itemId, store, url });
+async function add(userId, itemId, store, url, title) {
+  let userItem = new UserItem({ userId, itemId, store, url, title });
   await userItem.save();
 }
 
