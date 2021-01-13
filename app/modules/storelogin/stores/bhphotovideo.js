@@ -19,7 +19,7 @@ class Bhphotovideo extends Base {
   async login() {
     if (!this.autoBuyerRequest) {
       await this.launchBrowser();
-      await this.page.goto(LOGIN_URL);
+      await this.page.goto(LOGIN_URL, {waitUntil: 'networkidle0'});
     }
 
     await this.page.waitForTimeout(1000);
