@@ -13,25 +13,21 @@ async function restore() {
     return;
   }
 
-  let timeout = 0;
   let promises = [];
 
   let jobs = await Job.getAll();
 
   for (let job of jobs) {
     promises.push(
-      new Promise((resolve, reject) => {
-        setTimeout(async () => {
+      new Promise((resolve) => {
+        (async function retry() {
           try {
             await start(null, job.url);
             resolve();
-          } catch (error) {
-            await Job.remove(job.itemId);
-            console.error(error);
-            reject();
+          } catch (e) {
+            return retry();
           }
-        }, timeout);
-        timeout += 1000;
+        })();
       })
     );
   }
@@ -40,8 +36,7 @@ async function restore() {
 }
 
 /**
- * starts a job, throws if fails
- * @returns checker's instance
+ * starts a job
  */
 async function start(userId, url) {
   let store = Store.urlToStore(url);
@@ -80,7 +75,7 @@ async function start(userId, url) {
 }
 
 /**
- * stops a running job, throws if fails
+ * stops a running job
  */
 async function stop(userId, store, itemId) {
   if (!Store.has(store)) {
