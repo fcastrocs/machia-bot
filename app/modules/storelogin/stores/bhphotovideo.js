@@ -22,17 +22,21 @@ class Bhphotovideo extends Base {
       await this.page.goto(LOGIN_URL);
     }
 
+    await this.page.waitForTimeout(1000);
+
     // hover over account box
     await this.page.waitForSelector(".user.login-account", { visible: true });
     await this.page.hover(".user.login-account");
 
-    //await this.page.waitForTimeout(1500);
+    await this.page.waitForTimeout(1000);
 
     // open login modal
-    let [btn] = await this.page.$x("//button[contains(., 'Log In')]");
-    if (btn) {
-      await btn.click();
-    }
+    let [btn] = await this.page.$x("//button[contains(., 'Log In')]", {
+      visible: true,
+    });
+    await btn.click();
+
+    await this.page.waitForTimeout(1000);
 
     // Enter email
     let input = await this.page.waitForSelector("#user-input");
@@ -47,10 +51,15 @@ class Bhphotovideo extends Base {
     //click submit button
     let p = await Promise.all([
       this.page.waitForResponse((req) =>
-        req.url().includes("?Q=json&A=logMeIn&O=")
+        req.url().includes("?Q=json&A=logMeIn")
       ),
       await btn.click(),
     ]);
+
+    if (p[0].status() !== 200) {
+      console.error(p[0]);
+      throw "Unexpected error, try again.";
+    }
 
     try {
       var res = await p[0].json();
