@@ -19,14 +19,14 @@ class Bhphotovideo extends Base {
   async login() {
     if (!this.autoBuyerRequest) {
       await this.launchBrowser();
-      await this.page.goto(LOGIN_URL, { waitUntil: "networkidle0" });
+      await this.page.goto(LOGIN_URL);
     }
 
     // hover over account box
-    await this.page.waitForSelector(".user.login-account");
+    await this.page.waitForSelector(".user.login-account", { visible: true });
     await this.page.hover(".user.login-account");
 
-    await this.page.waitForTimeout(1500);
+    //await this.page.waitForTimeout(1500);
 
     // open login modal
     let [btn] = await this.page.$x("//button[contains(., 'Log In')]");

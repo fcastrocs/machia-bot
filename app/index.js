@@ -124,7 +124,7 @@ bot.on("message", async (msg) => {
     try {
       await Job.stop(userId, ...msg);
     } catch (e) {
-      sendDm(e, userId);
+      return sendDm(e, userId);
     }
     return sendDm("Auto-buy successfully stopped.", userId);
   }
