@@ -43,7 +43,7 @@ bot.on("message", async (msg) => {
     sendDm("Verifying credential...", userId);
 
     try {
-      await Credential.set(userId, ...msg);
+      await Credential("set", userId, msg);
     } catch (e) {
       if (e === "verification") {
         return sendDm(
@@ -80,7 +80,7 @@ bot.on("message", async (msg) => {
     sendDm("Please wait...", userId);
 
     try {
-      await Credential.verify(userId, code);
+      await Credential("verify", userId, [code]);
     } catch (e) {
       return sendDm(e, userId);
     }
@@ -100,7 +100,7 @@ bot.on("message", async (msg) => {
     sendDm("Starting auto-buy...", userId);
 
     try {
-      await Job.start(userId, url);
+      await Job("start", userId, [url]);
     } catch (e) {
       return sendDm(e, userId);
     }
@@ -122,7 +122,7 @@ bot.on("message", async (msg) => {
     }
 
     try {
-      await Job.stop(userId, ...msg);
+      await Job("stop", userId, msg);
     } catch (e) {
       return sendDm(e, userId);
     }
@@ -136,7 +136,7 @@ bot.on("message", async (msg) => {
 
     let store = msg.replace("!mylist ", "");
 
-    let list = await Job.myList(userId, store);
+    let list = await Job("myList", [userId, store]);
     if (list.length === 0) {
       return sendDm(
         "You don't have any items on auto-buy for this store.",
@@ -157,7 +157,7 @@ bot.on("message", async (msg) => {
   }
 
   if (msg === "!list") {
-    let map = await Job.list();
+    let map = await Job("list", userId);
     if (!map) {
       return sendDm("I am not tracking any products.", userId);
     }
@@ -287,7 +287,7 @@ bot.on("ready", async () => {
   await Proxy.fetch();
 
   console.log("Restoring jobs...");
-  await Job.restore();
+  await Job("restore");
   events();
   console.log("Bot is ready.");
 });

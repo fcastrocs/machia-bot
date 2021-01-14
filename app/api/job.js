@@ -4,11 +4,14 @@ const UserItem = require("../services/userItem");
 const Store = require("../modules/store");
 const Checker = require("../modules/checker");
 const CheckerService = require("../services/checker");
+const RateLimit = require("../modules/ratelimit");
+
+const functions = new Object();
 
 /**
  * Restore all jobs
  */
-async function restore() {
+functions.restore = async function restore() {
   if ((await Job.size()) == 0) {
     return;
   }
@@ -22,7 +25,7 @@ async function restore() {
       new Promise((resolve) => {
         (async function retry() {
           try {
-            await start(null, job.url);
+            await functions.start(null, job.url);
             resolve();
           } catch (e) {
             return retry();
@@ -33,12 +36,12 @@ async function restore() {
   }
 
   await Promise.allSettled(promises);
-}
+};
 
 /**
  * starts a job
  */
-async function start(userId, url) {
+functions.start = async function start(userId, url) {
   let store = Store.urlToStore(url);
 
   if (!store) {
@@ -54,7 +57,7 @@ async function start(userId, url) {
   await checker.getData();
 
   if (checker.isAvailable()) {
-    throw "This product is not out of stock.";
+    throw "This product is already available.";
   }
 
   // Check if this url has a checker
@@ -72,12 +75,12 @@ async function start(userId, url) {
     await Job.add(checker.itemId, store, url);
     await UserItem.add(userId, checker.itemId, store, url, checker.title);
   }
-}
+};
 
 /**
  * stops a running job
  */
-async function stop(userId, store, itemId) {
+functions.stop = async function stop(userId, store, itemId) {
   if (!Store.has(store)) {
     throw "Unsupported store.";
   }
@@ -105,12 +108,12 @@ async function stop(userId, store, itemId) {
   await UserItem.remove(userId, itemId, store);
   let checker = CheckerService.remove(store, itemId);
   checker.stop();
-}
+};
 
 /**
  * Returns all running jobs
  */
-async function list() {
+functions.list = async function list() {
   let map = new Map();
 
   let docs = await Job.getAll();
@@ -131,9 +134,12 @@ async function list() {
     array.push(obj);
   }
   return map;
-}
+};
 
-async function myList(userId, store) {
+/**
+ * Returns store list for this userId
+ */
+functions.myList = async function myList(userId, store) {
   let array = [];
 
   let docs = await UserItem.getAll(userId, store);
@@ -148,6 +154,30 @@ async function myList(userId, store) {
     array.push(obj);
   }
   return array;
-}
+};
 
-module.exports = { restore, start, stop, list, myList };
+module.exports = async (fn, userId, args) => {
+  //skip restore
+  if (fn === "restore") {
+    return await functions.restore();
+  }
+
+  if (fn !== "start" && fn !== "stop" && fn !== "list" && fn !== "myList") {
+    throw "Unknown function";
+  }
+
+  if (RateLimit.has(userId)) {
+    throw "There is an ongoing request...";
+  }
+
+  RateLimit.add(userId);
+
+  try {
+    await functions[fn](userId, ...args);
+  } catch (e) {
+    RateLimit.remove(userId);
+    throw e;
+  }
+
+  RateLimit.remove(userId);
+};

@@ -5,7 +5,7 @@
 
 "use strict";
 
-const puppeteer = require("puppeteer-extra");
+const puppeteer = require("puppeteer-extra").default;
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 // puppeteer launch options
@@ -30,8 +30,18 @@ class Base {
     this.browsers = new Map();
     this.added2Cart = new Set();
 
-    emitter.emit("autobuyer-start", { url, title });
     this.storeContext = null;
+  }
+
+  async test(credential) {
+    try {
+      await this.attemptPurchase(credential);
+    } catch (e) {
+      if (e === "object") {
+        console.error(e);
+        throw "Unexpected error occurred";
+      }
+    }
   }
 
   /**
@@ -39,6 +49,8 @@ class Base {
    */
   async startPurchases(storeContext) {
     this.storeContext = storeContext;
+
+    emitter.emit("autobuyer-start", { url: this.url, title: this.title });
 
     let credentials = await this.getAllBuyerCredentials();
     // attemp purchases
@@ -103,12 +115,16 @@ class Base {
         try {
           // attempt to purchase item
           await this.storeContext.purchase(credential);
-          await this.closeBrowser(userId);
+          if (process.env.DONTCLOSE === "true") {
+            await this.closeBrowser(userId);
+          }
           resolve(userId);
         } catch (err) {
           console.error(err);
-          // every error is caught here
-          await this.closeBrowser(userId);
+
+          if (process.env.DONTCLOSE === "true") {
+            await this.closeBrowser(userId);
+          }
           // try again
           if (operation.retry(err)) {
             return;
@@ -150,8 +166,12 @@ class Base {
     await storeLogin.start();
   }
 
-  addToCartHandle(userId, cookies) {
-    cookies = JSON.parse(cookies);
+  // Page is passed when puppteer is used instead of axios
+  addToCartHandle(userId, cookies, page) {
+    if (cookies) {
+      cookies = JSON.parse(cookies);
+    }
+
     // check if already added to cart
     if (this.added2Cart.has(userId)) {
       return;
@@ -166,20 +186,20 @@ class Base {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          await this.storeContext.addToCart(cookies);
+          await this.storeContext.addToCart(cookies, page);
+          this.added2Cart.add(userId);
+          resolve();
         } catch (error) {
           if (operation.retry(error)) {
             return;
           }
+
           if (typeof error === "object") {
             console.error(error);
             return reject("Add to cart failed.");
           }
-          reject(error);
+          return reject(error);
         }
-
-        this.added2Cart.add(userId);
-        resolve();
       });
     });
   }
