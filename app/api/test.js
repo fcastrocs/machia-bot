@@ -18,8 +18,8 @@ async function test(userId, url) {
   let checker = new Checker(url, store);
   await checker.getData();
 
-  if (checker.isAvailable()) {
-    throw "This product is already available.";
+  if (!checker.isAvailable()) {
+    throw "This product is out of stock.";
   }
 
   let autoBuyer = new AutoBuyer(url, store, checker.itemId, checker.title);
