@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const emitter = require("./modules/emitter");
 const Job = require("./api/job");
 const Credential = require("./api/credential");
+const Test = require("./api/test");
 const Proxy = require("./modules/proxy");
 const bot = new Discord.Client();
 
@@ -105,6 +106,23 @@ bot.on("message", async (msg) => {
       return sendDm(e, userId);
     }
     return sendDm("Auto-buy successfully started.", userId);
+  }
+
+  if (msg.includes("!test")) {
+    if (msg === "!test") {
+      return sendDm("Usage: ```!test URL```", userId);
+    }
+
+    let url = msg.replace("!test ", "");
+
+    sendDm("Testing auto-buy...", userId);
+
+    try {
+      await Test(userId, url);
+    } catch (e) {
+      return sendDm(e, userId);
+    }
+    return sendDm("Auto-buy is working as expected.", userId);
   }
 
   if (msg.includes("!stop")) {
