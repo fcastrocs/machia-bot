@@ -30,7 +30,10 @@ class Bestbuy extends Base {
     btn = await page.waitForSelector(
       'button[data-track="Place your Order - Contact Card"]'
     );
-    //await btn.click();
+
+    if (!this.testMode) {
+      await btn.click();
+    }
   }
 
   async addToCart(cookies) {

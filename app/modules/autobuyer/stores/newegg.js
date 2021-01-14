@@ -79,7 +79,10 @@ class Newegg extends Base {
 
     btn = await page.waitForSelector("#btnCreditCard");
     // finally buy item
-    await btn.click();
+
+    if (!this.testMode) {
+      await btn.click();
+    }
   }
 
   async addToCart(cookies) {

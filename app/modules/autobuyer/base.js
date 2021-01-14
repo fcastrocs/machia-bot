@@ -34,13 +34,11 @@ class Base {
   }
 
   async test(credential) {
+    this.testMode = true;
     try {
       await this.attemptPurchase(credential);
     } catch (e) {
-      if (e === "object") {
-        console.error(e);
-        throw "Unexpected error occurred";
-      }
+      throw e.err;
     }
   }
 

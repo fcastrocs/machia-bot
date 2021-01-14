@@ -45,7 +45,10 @@ class Bhphotovideo extends Base {
     btn = await page.waitForSelector('button[data-selenium="placeOrder"]', {
       visible: true,
     });
-    //await btn.click();
+
+    if (!this.testMode) {
+      await btn.click();
+    }
   }
 
   async addToCart(cookies, page) {
