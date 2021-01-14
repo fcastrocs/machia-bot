@@ -33,7 +33,8 @@ class Base {
     this.storeContext = null;
   }
 
-  async test(credential) {
+  async test(storeContext, credential) {
+    this.storeContext = storeContext;
     this.testMode = true;
     try {
       await this.attemptPurchase(credential);
@@ -113,16 +114,10 @@ class Base {
         try {
           // attempt to purchase item
           await this.storeContext.purchase(credential);
-          if (process.env.DONTCLOSE === "true") {
-            await this.closeBrowser(userId);
-          }
           resolve(userId);
         } catch (err) {
           console.error(err);
-
-          if (process.env.DONTCLOSE === "true") {
-            await this.closeBrowser(userId);
-          }
+          await this.closeBrowser(userId);
           // try again
           if (operation.retry(err)) {
             return;
@@ -132,6 +127,8 @@ class Base {
           }
           reject({ userId, err });
         }
+
+        await this.closeBrowser(userId);
       });
     });
   }
@@ -146,6 +143,7 @@ class Base {
   }
 
   async closeBrowser(userId) {
+    if (process.env.DONTCLOSE === "true") return;
     let browser = this.browsers.get(userId);
     if (!browser) return;
     await browser.close();

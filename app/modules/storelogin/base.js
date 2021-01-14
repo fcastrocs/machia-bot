@@ -89,7 +89,13 @@ class Base {
   }
 
   async closeBrowser() {
-    if (this.autoBuyerRequest || !this.browser) return;
+    if (
+      this.autoBuyerRequest ||
+      !this.browser ||
+      process.env.DONTCLOSE === "true"
+    )
+      return;
+
     await this.browser.close();
     this.browser = null;
   }
@@ -121,7 +127,6 @@ class Base {
     Verification.remove(this.userId);
     await this.saveCredential();
   }
-
 }
 
 // puppeteer launch options

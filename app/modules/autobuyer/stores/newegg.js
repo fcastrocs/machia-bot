@@ -11,6 +11,10 @@ class Newegg extends Base {
     return this.startPurchases(this);
   }
 
+  test(credential) {
+    return super.test(this, credential);
+  }
+
   async purchase(credential) {
     await this.addToCartHandle(credential.userId, credential.cookies);
     let page = await this.launchBrowser(credential.userId, credential.cookies);

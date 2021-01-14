@@ -10,7 +10,7 @@ async function test(userId, url) {
     throw "Unsupported store.";
   }
 
-  let credential = Credential.get(userId, store);
+  let credential = await Credential.get(userId, store);
   if (!credential) {
     throw "You don't have credentials for this store.";
   }

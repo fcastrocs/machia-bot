@@ -9,6 +9,10 @@ class Bhphotovideo extends Base {
     return this.startPurchases(this);
   }
 
+  test(credential) {
+    return super.test(this, credential);
+  }
+
   async purchase(credential) {
     let page = await this.launchBrowser(credential.userId, credential.cookies);
     await this.addToCartHandle(credential.userId, credential.cookies, page);
@@ -36,6 +40,7 @@ class Bhphotovideo extends Base {
 
     // need to login
     if (html.includes("user-input")) {
+      console.log("Signing in...");
       await this.loginHandle(credential, page);
     }
 
