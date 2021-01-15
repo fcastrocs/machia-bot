@@ -23,11 +23,16 @@ class Bestbuy extends Base {
     await page.goto("https://www.bestbuy.com/cart");
 
     // click check out
-    let btn = await page.waitForSelector('button[data-track="Checkout - Top"]');
+    let btn = await page.waitForSelector(
+      'button[data-track="Checkout - Top"]',
+      { visible: true }
+    );
     await btn.click();
 
     //input cvv
-    let input = await page.waitForSelector("#credit-card-cvv");
+    let input = await page.waitForSelector("#credit-card-cvv", {
+      visible: true,
+    });
     await input.type(credential.cvv);
 
     //place order

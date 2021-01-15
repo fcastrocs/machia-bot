@@ -35,12 +35,7 @@ class Bhphotovideo extends Base {
       return this.setValues(title, this.itemId, outOfStock);
     }
 
-    if (
-      $('button[data-selenium="notifyAvailabilityButton"]').text() ===
-      "Notify When Available"
-    ) {
-      outOfStock = true;
-    }
+    outOfStock = true;
 
     this.setValues(title, this.itemId, outOfStock);
   }

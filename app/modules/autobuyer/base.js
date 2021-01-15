@@ -183,7 +183,6 @@ class Base {
       operation.attempt(async () => {
         try {
           await this.storeContext.addToCart(cookies, page);
-          this.added2Cart.add(userId);
           resolve();
         } catch (error) {
           if (operation.retry(error)) {
@@ -196,6 +195,8 @@ class Base {
           }
           return reject(error);
         }
+
+        this.added2Cart.add(userId);
       });
     });
   }

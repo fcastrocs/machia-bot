@@ -10,6 +10,11 @@ Verification.map = new Map();
 
 Verification.set = (userId, storeLogin) => {
   Verification.map.set(userId, storeLogin);
+
+  // Remove verification after some time.
+  setTimeout(() => {
+    Verification.remove(userId);
+  }, process.env.VERIFY_TIMEOUT);
 };
 
 Verification.has = (userId) => {
