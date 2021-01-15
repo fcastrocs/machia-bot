@@ -17,7 +17,7 @@ const axios = require("axios").default;
 
 const UserItem = require("../../services/userItem");
 const Credential = require("../../services/credential");
-const StoreLogin = require("../storeLogin");
+const StoreLogin = require("../storelogin");
 const httpsProxyAgent = require("https-proxy-agent");
 
 class Base {
