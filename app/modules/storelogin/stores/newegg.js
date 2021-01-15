@@ -84,7 +84,10 @@ class Newegg extends Base {
         await verification;
         throw "verification";
       } catch (e) {
-        throw "For your security, setup 2FA to your account, try again.";
+        if (!this.autoBuyerRequest) {
+          throw "For your security, setup 2FA to your account, try again.";
+        }
+        return;
       }
     }
 
