@@ -109,7 +109,7 @@ class Base {
       await this.storeContext.verifyLogin(code);
     } catch (e) {
       // close browser for any other error
-      if (e === "Incorrect code, try again.") {
+      if (e === "Incorrect code, try again." || e === "verification") {
         throw e;
       }
 

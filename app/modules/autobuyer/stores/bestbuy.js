@@ -16,8 +16,10 @@ class Bestbuy extends Base {
   }
 
   async purchase(credential) {
-    await this.addToCartHandle(credential.userId, credential.cookies);
-    let page = await this.launchBrowser(credential.userId, credential.cookies);
+    let cookies = JSON.parse(credential.cookies);
+
+    let lineId = await this.addToCartHandle(credential.userId, cookies);
+    let page = await this.launchBrowser(credential.userId, cookies);
 
     // go to shopping cart
     await page.goto("https://www.bestbuy.com/cart");
@@ -27,7 +29,18 @@ class Bestbuy extends Base {
       'button[data-track="Checkout - Top"]',
       { visible: true }
     );
-    await btn.click();
+
+    // check whether signin is required
+    let p = await Promise.all([
+      page.waitForResponse((res) => res.url().includes("identity/signin")),
+      btn.click(),
+    ]);
+
+    // need to signin
+    if (p[0].status() !== 302) {
+      await this.loginHandle(credential, page);
+      await page.waitForTimeout(2000);
+    }
 
     //input cvv
     let input = await page.waitForSelector("#credit-card-cvv", {
@@ -42,7 +55,10 @@ class Bestbuy extends Base {
 
     if (!this.testMode) {
       await btn.click();
+      await page.waitForTimeout(10000);
     }
+
+    await this.removeItemFromCart(cookies, lineId);
   }
 
   async addToCart(cookies) {
@@ -50,12 +66,13 @@ class Bestbuy extends Base {
 
     let options = {
       url: ADD2CART_URL,
+      method: "post",
       cookies,
       data: { items: [{ skuId: this.itemId }] },
       origin: "https://www.bestbuy.com",
     };
 
-    let res = await this.addToCartRequest(options);
+    let res = await this.httpRequest(options);
     if (res.statusText !== "OK") {
       throw "Add to cart failed.";
     }
@@ -64,16 +81,24 @@ class Bestbuy extends Base {
       throw "Add to cart failed.";
     }
 
-    let found = false;
     for (let item of res.data.summaryItems) {
       if (item.skuId === this.itemId) {
-        found = true;
-        break;
+        return item.lineId;
       }
     }
-    if (!found) {
-      throw "Add to cart failed.";
-    }
+
+    throw "Add to cart failed.";
+  }
+
+  async removeItemFromCart(cookies, lineId) {
+    let options = {
+      url: `https://www.bestbuy.com/cart/item/${lineId}`,
+      origin: "https://www.bestbuy.com",
+      method: "delete",
+      cookies: this.cookiesToString(cookies),
+    };
+
+    await this.httpRequest(options);
   }
 }
 

@@ -33,6 +33,9 @@ class Base {
     this.storeContext = null;
   }
 
+  /**
+   * Test auto-buyer without buying.
+   */
   async test(storeContext, credential) {
     this.storeContext = storeContext;
     this.testMode = true;
@@ -86,6 +89,9 @@ class Base {
     emitter.emit("autobuy-finished", results);
   }
 
+  /**
+   * Get credentials[] of all users who want to buy this item
+   */
   async getAllBuyerCredentials() {
     let docs = await UserItem.getAll(null, this.store, this.itemId);
     if (docs.length === 0) {
@@ -101,6 +107,9 @@ class Base {
     return credentials;
   }
 
+  /**
+   * Attemp purchase with retry
+   */
   attemptPurchase(credential) {
     return new Promise((resolve, reject) => {
       let operation = retry.operation({
@@ -112,8 +121,8 @@ class Base {
       operation.attempt(async () => {
         let userId = credential.userId;
         try {
-          // attempt to purchase item
           await this.storeContext.purchase(credential);
+          await this.closeBrowser(userId);
           resolve(userId);
         } catch (err) {
           console.error(err);
@@ -125,16 +134,86 @@ class Base {
           if (typeof err === "object") {
             return reject({ userId, err: "Unexpected error occurred." });
           }
-          reject({ userId, err });
+          return reject({ userId, err });
         }
+      });
+    });
+  }
+  /**
+   * Handles add to cart with retry
+   * page is passed when puppteer is used instead of axios
+   */
+  addToCartHandle(userId, cookies, page) {
+    // check if already added to cart
+    if (this.added2Cart.has(userId)) {
+      return;
+    }
 
-        await this.closeBrowser(userId);
+    let operation = retry.operation({
+      retries: process.env.ADDTOCART_RETRY,
+      minTimeout: 0,
+      maxTimeout: 0,
+    });
+
+    return new Promise((resolve, reject) => {
+      operation.attempt(async () => {
+        try {
+          let data = await this.storeContext.addToCart(cookies, page);
+          this.added2Cart.add(userId);
+          resolve(data);
+        } catch (error) {
+          if (operation.retry(error)) {
+            return;
+          }
+
+          if (typeof error === "object") {
+            console.error(error);
+            return reject("Add to cart failed.");
+          }
+          return reject(error);
+        }
       });
     });
   }
 
+  async httpRequest(options) {
+    const httpsAgent = new httpsProxyAgent(
+      `http://${process.env.RESIDENTIAL_PROXY}`
+    );
+
+    let config = {
+      url: options.url,
+      method: options.method,
+      httpsAgent,
+      timeout: process.env.ADDTOCART_TIMEOUT,
+      headers: {
+        accept: "application/json, text/javascript, */*; q=0.01",
+        "accept-encoding": "gzip, deflate, br",
+        "accept-language": "en-US,en;q=0.9,es-US;q=0.8,es;q=0.7",
+        "cache-control": "no-cache",
+        "content-type": "application/json; charset=UTF-8",
+        cookie: options.cookies,
+        origin: options.origin,
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0",
+      },
+    };
+
+    if (options.referer) config.referer = options.referer;
+    if (options.data) config.data = options.data;
+
+    return axios.request(config);
+  }
+
+  cookiesToString(cookies) {
+    let string = "";
+    for (let cookie of cookies) {
+      string += `${cookie.name}=${cookie.value}; `;
+    }
+    return string;
+  }
+
   async launchBrowser(userId, cookies) {
-    cookies = JSON.parse(cookies);
     let browser = await puppeteer.launch(launchOptions);
     this.browsers.set(userId, browser);
     let page = await browser.newPage();
@@ -160,88 +239,6 @@ class Base {
     );
 
     await storeLogin.start();
-  }
-
-  // Page is passed when puppteer is used instead of axios
-  addToCartHandle(userId, cookies, page) {
-    if (cookies) {
-      cookies = JSON.parse(cookies);
-    }
-
-    // check if already added to cart
-    if (this.added2Cart.has(userId)) {
-      return;
-    }
-
-    let operation = retry.operation({
-      retries: process.env.ADDTOCARD_RETRY,
-      minTimeout: 0,
-      maxTimeout: 0,
-    });
-
-    return new Promise((resolve, reject) => {
-      operation.attempt(async () => {
-        try {
-          await this.storeContext.addToCart(cookies, page);
-          resolve();
-        } catch (error) {
-          if (operation.retry(error)) {
-            return;
-          }
-
-          if (typeof error === "object") {
-            console.error(error);
-            return reject("Add to cart failed.");
-          }
-          return reject(error);
-        }
-
-        this.added2Cart.add(userId);
-      });
-    });
-  }
-
-  cookiesToString(cookies) {
-    let string = "";
-    for (let cookie of cookies) {
-      string += `${cookie.name}=${cookie.value}; `;
-    }
-    return string;
-  }
-
-  async addToCartRequest(options) {
-    const httpsAgent = new httpsProxyAgent(
-      `http://${process.env.RESIDENTIAL_PROXY}`
-    );
-
-    let config = {
-      url: options.url,
-      method: "post",
-      data: options.data,
-      httpsAgent,
-      timeout: process.env.ADDTOCART_TIMEOUT,
-      headers: {
-        accept: "application/json",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "en-US,en;q=0.9,es-US;q=0.8,es;q=0.7",
-        "cache-control": "no-cache",
-        "content-type": "application/json; charset=UTF-8",
-        cookie: options.cookies,
-        origin: options.origin,
-        pragma: "no-cache",
-        referer: this.url,
-        "sec-ch-ua":
-          '"Google Chrome";v="87", " Not;A Brand";v="99", "Chromium";v="87"',
-        "sec-ch-ua-mobile": "?",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36",
-      },
-    };
-
-    return await axios.request(config);
   }
 }
 

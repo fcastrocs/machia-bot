@@ -20,19 +20,19 @@ class Bestbuy extends Base {
     if (!this.autoBuyerRequest) {
       await this.launchBrowser();
       await this.page.goto(LOGIN_URL);
+
+      // Enter email
+      let input = await this.page.waitForSelector("#fld-e");
+      await input.type(this.email);
+
+      // Remember me checkbox
+      input = await this.page.waitForSelector("#ca-remember-me");
+      await input.click();
     }
 
-    // Enter email
-    let input = await this.page.waitForSelector("#fld-e");
-    await input.type(this.email);
-
     // Enter password
-    input = await this.page.waitForSelector("#fld-p1");
+    let input = await this.page.waitForSelector("#fld-p1");
     await input.type(this.password);
-
-    // Remember me checkbox
-    input = await this.page.waitForSelector("#ca-remember-me");
-    await input.click();
 
     let btn = await this.page.waitForSelector("[data-track='Sign In']");
 

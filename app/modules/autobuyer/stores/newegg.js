@@ -16,8 +16,9 @@ class Newegg extends Base {
   }
 
   async purchase(credential) {
-    await this.addToCartHandle(credential.userId, credential.cookies);
-    let page = await this.launchBrowser(credential.userId, credential.cookies);
+    let cookies = JSON.parse(credential.cookies);
+    await this.addToCartHandle(credential.userId, cookies);
+    let page = await this.launchBrowser(credential.userId, cookies);
 
     // go to shopping cart
     await page.goto("https://secure.newegg.com/shop/cart", {
@@ -117,6 +118,7 @@ class Newegg extends Base {
 
     let options = {
       url: ADD2CART_URL,
+      method: "post",
       cookies,
       data: {
         ItemList: [
@@ -133,7 +135,7 @@ class Newegg extends Base {
       origin: "https://www.newegg.com",
     };
 
-    let res = await this.addToCartRequest(options);
+    let res = await this.httpRequest(options);
     if (res.status !== 201) {
       throw res;
     }

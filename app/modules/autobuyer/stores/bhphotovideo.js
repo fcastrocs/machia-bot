@@ -14,8 +14,9 @@ class Bhphotovideo extends Base {
   }
 
   async purchase(credential) {
-    let page = await this.launchBrowser(credential.userId, credential.cookies);
-    await this.addToCartHandle(credential.userId, credential.cookies, page);
+    let cookies = JSON.parse(credential.cookies);
+    let page = await this.launchBrowser(credential.userId, cookies);
+    await this.addToCartHandle(credential.userId, cookies, page);
 
     // go to shopping cart
     await page.goto("https://www.bhphotovideo.com/find/cart.jsp", {
