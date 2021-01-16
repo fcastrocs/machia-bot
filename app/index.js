@@ -83,12 +83,6 @@ bot.on("message", async (msg) => {
     try {
       await Credential("verify", userId, [code]);
     } catch (e) {
-      if (e === "verification") {
-        return sendDm(
-          "Another code is needed. Enter it: ```!verify code```",
-          userId
-        );
-      }
       return sendDm(e, userId);
     }
     return sendDm(
