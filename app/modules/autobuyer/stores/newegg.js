@@ -16,26 +16,31 @@ class Newegg extends Base {
   }
 
   async purchase(credential) {
-    console.log("Adding to cart.");
+    let userId = credential.userId;
+
+    // add to cart
+    console.log(`${userId}: adding to cart.`);
     await this.addToCartHandle(credential);
+
     let page = await this.launchBrowser(credential);
 
+    // disable annoying popup
     page = await this.disableMaskModal(page);
 
     // go to shopping cart
-    console.log("Opening cart.");
+    console.log(`${userId}: opening cart.`);
     await page.goto("https://secure.newegg.com/shop/cart");
 
-    console.log("Opening Checkout page.");
-    let btn = await page.waitForXPath(
-      "//button[contains(text(), ' Secure Checkout ')]"
-    );
+    // go to checkout page
+    console.log(`${userId}: opening checkout page.`);
+    let btn = await page.waitForXPath("//button[contains(text(), ' Secure Checkout ')]", {
+      visible: true,
+    });
 
     let needLogin = false;
 
-    // go to check out, might need to login again.
+    // might need to login again
     await Promise.all([
-      page.waitForNavigation({ waitUntil: "networkidle0" }),
       page.waitForResponse((req) => {
         if (req.url().includes("identity/signin?")) {
           needLogin = true;
@@ -50,61 +55,62 @@ class Newegg extends Base {
 
     // login is needed.
     if (needLogin) {
-      console.log("Logging in.");
+      console.log(`${userId}: logging in.`);
       await this.loginHandle(credential, page);
     }
 
-    console.log("Continuing to payment.");
-    btn = await page.waitForXPath(
-      "//button[contains(text(), 'Continue to payment')]"
-    );
+    // continuing to payment
+    console.log(`${userId}: continuing to payment.`);
+    btn = await page.waitForXPath("//button[contains(text(), 'Continue to payment')]", {
+      visible: true,
+    });
+    await btn.click();
 
-    await Promise.all([
-      page.waitForResponse((req) => req.url().includes("InitOrderReviewApi")),
-      btn.click(),
-    ]);
-
-    let cvv = await page.waitForSelector(".form-text.mask-cvv-4");
+    // input cvv
+    console.log(`${userId}: entering cvv.`);
+    let cvv = await page.waitForSelector(".form-text.mask-cvv-4", {
+      visible: true,
+    });
     await cvv.type(credential.cvv);
 
-    console.log("Reviewing order.");
-    btn = await page.waitForXPath(
-      "//button[contains(text(), 'Review your order')]"
-    );
+    // revewing order
+    console.log(`${userId}: reviewing order.`);
+    btn = await page.waitForXPath("//button[contains(text(), 'Review your order')]", {
+      visible: true,
+    });
+    await btn.click();
 
-    await Promise.all([
-      page.waitForResponse((req) => req.url().includes("InitOrderReviewApi")),
-      btn.click(),
-    ]);
+    // submitting order
+    console.log(`${userId}: submitting order.`);
+    btn = await page.waitForSelector("#btnCreditCard", { visible: true });
 
-    console.log("Submitting order.");
-    btn = await page.waitForSelector("#btnCreditCard");
     // finally buy item
-
     if (!this.testMode) {
       await btn.click();
       await page.waitForTimeout(10000);
+      let cookies = await page.cookies();
+      this.cookies.set(credential.userId, cookies);
       return;
     }
 
     // empty cart
-    console.log("Emptying cart.");
-    await page.goto("https://secure.newegg.com/shop/cart", {
-      waitUntil: "networkidle0",
-    });
-    btn = await page.waitForSelector('button[data-target="#Popup_Remove_All"]');
+    console.log(`${userId}: emptying cart.`);
+    await page.goto("https://secure.newegg.com/shop/cart");
+    btn = await page.waitForSelector('button[data-target="#Popup_Remove_All"]', { visible: true });
     await btn.click();
 
-    btn = await page.waitForXPath(
-      "//button[contains(text(), 'Yes, Remove all of them.')]",
-      { visible: true }
-    );
+    btn = await page.waitForXPath("//button[contains(text(), 'Yes, Remove all of them.')]", {
+      visible: true,
+    });
     await btn.click();
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(1500);
     let cookies = await page.cookies();
     this.cookies.set(credential.userId, cookies);
   }
 
+  /**
+   * Disable annoying popup in cart page
+   */
   async disableMaskModal(page) {
     await page.setRequestInterception(true);
     function dummyResponse(r) {
