@@ -5,8 +5,8 @@ const Base = require("../base");
 const LOGIN_URL = "https://www.bestbuy.com/identity/global/signin";
 
 class Bestbuy extends Base {
-  constructor(userId, email, password, cvv, page) {
-    super(userId, "bestbuy", email, password, cvv, page);
+  constructor() {
+    super("bestbuy");
   }
 
   /**
@@ -49,14 +49,12 @@ class Bestbuy extends Base {
       var res = await p[0].json();
     } catch (error) {
       // successful login
-      this.cookies = await this.page.cookies();
-      return;
+      return await this.page.cookies();
     }
 
     // Sometimes it sends 'success' status
     if (res.status === "success") {
-      this.cookies = await this.page.cookies();
-      return;
+      return await this.page.cookies();
     }
 
     if (res.status === "stepUpRequired") {
@@ -96,13 +94,11 @@ class Bestbuy extends Base {
       var res = await p[0].json();
     } catch (e) {
       //successful verify
-      this.cookies = await this.page.cookies();
-      return;
+      return await this.page.cookies();
     }
 
     if (res.status === "success") {
-      this.cookies = await this.page.cookies();
-      return;
+      return await this.page.cookies();
     }
 
     if (res.status === "failure") {

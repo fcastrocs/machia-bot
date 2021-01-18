@@ -16,26 +16,18 @@ class Newegg extends Base {
   }
 
   async purchase(credential) {
-    let cookies = JSON.parse(credential.cookies);
-    await this.addToCartHandle(credential.userId, cookies);
-    let page = await this.launchBrowser(credential.userId, cookies);
+    console.log("Adding to cart.");
+    await this.addToCartHandle(credential);
+    let page = await this.launchBrowser(credential);
+
+    page = await this.disableMaskModal(page);
 
     // go to shopping cart
-    await page.goto("https://secure.newegg.com/shop/cart", {
-      waitUntil: "networkidle0",
-    });
+    console.log("Opening cart.");
+    await page.goto("https://secure.newegg.com/shop/cart");
 
-    // try to close popup modal
-    let btn = await page.$("button[data-dismiss=modal]");
-    if (btn) {
-      let checkbox = await page.waitForXPath(
-        "//span[contains(text(), 'Do not show this message again.')]"
-      );
-      await checkbox.click();
-      await btn.click();
-    }
-
-    btn = await page.waitForXPath(
+    console.log("Opening Checkout page.");
+    let btn = await page.waitForXPath(
       "//button[contains(text(), ' Secure Checkout ')]"
     );
 
@@ -58,9 +50,11 @@ class Newegg extends Base {
 
     // login is needed.
     if (needLogin) {
+      console.log("Logging in.");
       await this.loginHandle(credential, page);
     }
 
+    console.log("Continuing to payment.");
     btn = await page.waitForXPath(
       "//button[contains(text(), 'Continue to payment')]"
     );
@@ -73,6 +67,7 @@ class Newegg extends Base {
     let cvv = await page.waitForSelector(".form-text.mask-cvv-4");
     await cvv.type(credential.cvv);
 
+    console.log("Reviewing order.");
     btn = await page.waitForXPath(
       "//button[contains(text(), 'Review your order')]"
     );
@@ -82,21 +77,59 @@ class Newegg extends Base {
       btn.click(),
     ]);
 
+    console.log("Submitting order.");
     btn = await page.waitForSelector("#btnCreditCard");
     // finally buy item
 
     if (!this.testMode) {
       await btn.click();
+      await page.waitForTimeout(10000);
+      return;
     }
+
+    // empty cart
+    console.log("Emptying cart.");
+    await page.goto("https://secure.newegg.com/shop/cart", {
+      waitUntil: "networkidle0",
+    });
+    btn = await page.waitForSelector('button[data-target="#Popup_Remove_All"]');
+    await btn.click();
+
+    btn = await page.waitForXPath(
+      "//button[contains(text(), 'Yes, Remove all of them.')]",
+      { visible: true }
+    );
+    await btn.click();
+    await page.waitForTimeout(5000);
+    let cookies = await page.cookies();
+    this.cookies.set(credential.userId, cookies);
   }
 
-  async addToCart(cookies) {
-    let value = null;
+  async disableMaskModal(page) {
+    await page.setRequestInterception(true);
+    function dummyResponse(r) {
+      r.respond({
+        status: 200,
+        contentType: "text/plain",
+        body: "tweak me.",
+      });
+    }
+    page.on("request", dummyResponse);
+    await page.goto("https://secure.newegg.com/shop/cart");
+    // don't show masks modal
+    await page.evaluate(() => {
+      // eslint-disable-next-line no-undef
+      localStorage.setItem("aatc_mask_show2", "1");
+    });
+    await page.close();
+    return await (await page.browser()).newPage();
+  }
 
+  async addToCart(credential) {
     // get customer number
-    for (let cookie of cookies) {
+    for (let cookie of credential.cookies) {
       if (cookie.name === "NV%5FOTHERINFO") {
-        value = cookie.value;
+        var value = cookie.value;
         break;
       }
     }
@@ -114,12 +147,13 @@ class Newegg extends Base {
     }
 
     customerNumber = decodeURIComponent(customerNumber);
-    cookies = this.cookiesToString(cookies);
+    let cookies = this.cookiesToString(credential.cookies);
 
     let options = {
       url: ADD2CART_URL,
       method: "post",
       cookies,
+      proxy: credential.proxy,
       data: {
         ItemList: [
           {

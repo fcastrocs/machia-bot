@@ -5,8 +5,8 @@ const Base = require("../base");
 const LOGIN_URL = "https://www.bhphotovideo.com";
 
 class Bhphotovideo extends Base {
-  constructor(userId, email, password, cvv, page) {
-    super(userId, "bhphotovideo", email, password, cvv, page);
+  constructor() {
+    super("bhphotovideo");
   }
 
   /**
@@ -65,8 +65,7 @@ class Bhphotovideo extends Base {
       var res = await p[0].json();
     } catch (error) {
       // successful login
-      this.cookies = await this.page.cookies();
-      return;
+      return await this.page.cookies();
     }
 
     if (res.status === "error") {

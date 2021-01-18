@@ -6,10 +6,9 @@ const STORE_URL = "https://www.newegg.com/";
 const LOGIN_URL = "https://secure.newegg.com/NewMyAccount/AccountLogin.aspx";
 
 class Newegg extends Base {
-  constructor(userId, email, password, cvv, page) {
-    super(userId, "newegg", email, password, cvv, page);
-
-    this.secondLogin = false;
+  constructor() {
+    super("newegg");
+    this.rememberMeChecked = false;
   }
 
   /**
@@ -28,7 +27,7 @@ class Newegg extends Base {
 
     // wait for recaptcha
     if (!this.autoBuyerRequest) {
-      await this.page.waitForTimeout(30000);
+      await this.page.waitForTimeout(35000);
     }
 
     // Enter email
@@ -96,7 +95,7 @@ class Newegg extends Base {
     }
 
     if (this.autoBuyerRequest) {
-      return;
+      return await this.page.cookies();
     }
 
     // Require the account to have verification
@@ -114,8 +113,11 @@ class Newegg extends Base {
     }
 
     // Remember checkbox
-    let box = await this.page.waitForSelector(".form-checkbox-title");
-    await box.click();
+    if (!this.rememberMeChecked) {
+      let box = await this.page.waitForSelector(".form-checkbox-title");
+      await box.click();
+      this.rememberMeChecked = true;
+    }
 
     await this.page.type('input[aria-label="verify code 1"]', code.charAt(0));
     await this.page.type('input[aria-label="verify code 2"]', code.charAt(1));
@@ -127,19 +129,16 @@ class Newegg extends Base {
     await this.page.keyboard.press("Tab");
 
     let p = await Promise.all([
-      this.page.waitForResponse((req) =>
-        req.url().includes("/api/VerifyTwoStepCode")
+      this.page.waitForResponse((res) =>
+        res.url().includes("/api/VerifyTwoStepCode")
       ),
-      this.page.waitForNavigation({ waitUntil: "networkidle0" }),
       this.page.keyboard.press("Enter"),
     ]);
 
     try {
       var res = await p[0].json();
     } catch (e) {
-      // login successfull, empty response
-      this.cookies = await this.page.cookies();
-      return;
+      return await this.page.cookies();
     }
 
     if (res.Result === "TwoStepServiceError") {

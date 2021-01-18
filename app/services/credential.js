@@ -2,16 +2,25 @@
 
 const Credential = require("../models/credential");
 
-async function set(userId, store, email, password, cvv, cookies) {
+async function set(userId, store, email, password, cvv, cookies, proxy) {
   await Credential.findOneAndUpdate(
     { userId, store },
-    { email, password, cvv, cookies },
+    { email, password, cvv, cookies: JSON.stringify(cookies), proxy },
     { upsert: true, useFindAndModify: false }
   ).exec();
 }
 
 async function get(userId, store) {
-  return await Credential.findOne({ userId, store }).exec();
+  let doc = await Credential.findOne({ userId, store }).exec();
+  if (!doc) return null;
+  return new Object({
+    userId: doc.userId,
+    email: doc.email,
+    password: doc.password,
+    cvv: doc.cvv,
+    cookies: JSON.parse(doc.cookies),
+    proxy: doc.proxy,
+  });
 }
 
 async function has(userId, store) {

@@ -28,6 +28,7 @@ class Base {
     this.itemId = itemId;
 
     this.browsers = new Map();
+    this.cookies = new Map();
     this.added2Cart = new Set();
 
     this.storeContext = null;
@@ -122,11 +123,11 @@ class Base {
         let userId = credential.userId;
         try {
           await this.storeContext.purchase(credential);
-          await this.closeBrowser(userId);
+          await this.closeBrowser(credential);
           resolve(userId);
         } catch (err) {
           console.error(err);
-          await this.closeBrowser(userId);
+          await this.closeBrowser(credential);
           // try again
           if (operation.retry(err)) {
             return;
@@ -143,7 +144,9 @@ class Base {
    * Handles add to cart with retry
    * page is passed when puppteer is used instead of axios
    */
-  addToCartHandle(userId, cookies, page) {
+  addToCartHandle(credential, page) {
+    let userId = credential.userId;
+
     // check if already added to cart
     if (this.added2Cart.has(userId)) {
       return;
@@ -158,7 +161,7 @@ class Base {
     return new Promise((resolve, reject) => {
       operation.attempt(async () => {
         try {
-          let data = await this.storeContext.addToCart(cookies, page);
+          let data = await this.storeContext.addToCart(credential, page);
           this.added2Cart.add(userId);
           resolve(data);
         } catch (error) {
@@ -177,9 +180,7 @@ class Base {
   }
 
   async httpRequest(options) {
-    const httpsAgent = new httpsProxyAgent(
-      `http://${process.env.RESIDENTIAL_PROXY}`
-    );
+    const httpsAgent = new httpsProxyAgent(`http://${options.proxy}`);
 
     let config = {
       url: options.url,
@@ -213,31 +214,44 @@ class Base {
     return string;
   }
 
-  async launchBrowser(userId, cookies) {
+  async launchBrowser(credential) {
+    launchOptions.args.push(`--proxy-server=http://${credential.proxy}`);
     let browser = await puppeteer.launch(launchOptions);
-    this.browsers.set(userId, browser);
+    this.browsers.set(credential.userId, browser);
     let page = await browser.newPage();
-    await page.setCookie(...cookies);
+    await page.setCookie(...credential.cookies);
     return page;
   }
 
-  async closeBrowser(userId) {
+  async closeBrowser(credential) {
+    let cookies = this.cookies.get(credential.userId);
+    if (cookies) {
+      Credential.set(
+        credential.userId,
+        this.store,
+        credential.email,
+        credential.password,
+        credential.cvv,
+        cookies,
+        credential.proxy
+      );
+    }
     if (process.env.DONTCLOSE === "true") return;
-    let browser = this.browsers.get(userId);
+    let browser = this.browsers.get(credential.userId);
     if (!browser) return;
     await browser.close();
   }
 
   async loginHandle(credential, page) {
-    let storeLogin = new StoreLogin(
+    let storeLogin = new StoreLogin(this.store);
+    storeLogin.setUserData(
       credential.userId,
-      this.store,
       credential.email,
       credential.password,
       credential.cvv,
-      page
+      credential.proxy
     );
-
+    storeLogin.setAutoBuyerRequest(page);
     await storeLogin.start();
   }
 }

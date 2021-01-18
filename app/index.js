@@ -28,7 +28,7 @@ bot.on("message", async (msg) => {
   if (msg.includes("★")) return;
 
   if (msg.includes("!credential")) {
-    let usage = "Usage: ```!credential store username password cvv```";
+    let usage = "Usage: ```!credential store username password cvv proxy```";
 
     if (msg === "!credential") {
       return sendDm(usage, userId);
@@ -37,7 +37,7 @@ bot.on("message", async (msg) => {
     msg = msg.replace("!credential ", "");
     msg = msg.split(" ");
 
-    if (msg.length !== 4) {
+    if (msg.length !== 5) {
       return sendDm(usage, userId);
     }
 

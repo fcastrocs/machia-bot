@@ -11,6 +11,7 @@ const credential = new Schema({
   password: { type: String, required: true },
   cvv: { type: String, required: true, length: 3 },
   cookies: { type: String, required: true },
+  proxy: { type: String, required: true },
 });
 
 // compound index
@@ -20,7 +21,7 @@ credential.pre("findOneAndUpdate", function (next) {
   let self = this.getUpdate();
   self.email = encrypt(self.email);
   self.password = encrypt(self.password);
-  self.cookies = encrypt(JSON.stringify(self.cookies));
+  self.cookies = encrypt(self.cookies);
   self.cvv = encrypt(self.cvv);
   next();
 });

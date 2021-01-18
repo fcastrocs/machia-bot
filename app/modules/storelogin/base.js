@@ -7,25 +7,42 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 
 class Base {
-  constructor(userId, store, email, password, cvv, page) {
-    this.userId = userId;
+  constructor(store) {
     this.store = store;
+
+    this.browser = null;
+    this.page = null;
+    this.cookies = null;
+    this.storeContext = null;
+    this.autoBuyerRequest = false;
+  }
+
+  setUserData(userId, email, password, cvv, proxy) {
+    this.userId = userId;
     this.email = email;
     this.password = password;
     this.cvv = cvv;
+    this.proxy = proxy;
+  }
+
+  setAutoBuyerRequest(page) {
+    this.autoBuyerRequest = true;
     this.page = page;
-
-    this.browser = null;
-    this.cookies = null;
-    this.storeContext = null;
-
-    // page is passed when login request comes from Autobuyer
-    // Don't close browser
-    if (page) this.autoBuyerRequest = true;
   }
 
   /**
-   * Starts loging process
+   * Returns previous instance that needs verification
+   */
+  getVerifyInstance(userId) {
+    let instance = Verification.get(userId);
+    if (!instance) {
+      throw "There's no login waiting for verification.";
+    }
+    return instance;
+  }
+
+  /**
+   * Starts login process
    */
   async start(storeContext) {
     this.storeContext = storeContext;
@@ -36,7 +53,9 @@ class Base {
 
     // try to login
     try {
-      await this.storeContext.login();
+      this.cookies = await this.storeContext.login();
+      await this.closeBrowser();
+      await this.saveCredential();
     } catch (e) {
       // save store instance if verification is needed
       if (e === "verification") {
@@ -47,10 +66,7 @@ class Base {
         throw e;
       }
 
-      // don't close browser if request came from autobuyer
-      if (!this.autoBuyerRequest) {
-        await this.closeBrowser();
-      }
+      await this.closeBrowser();
 
       // display what went wrong
       if (typeof e === "object") {
@@ -59,14 +75,6 @@ class Base {
       }
       throw e;
     }
-    // login successful
-
-    // don't close browser if request came from autobuyer
-    if (!this.autoBuyerRequest) {
-      await this.closeBrowser();
-    }
-
-    await this.saveCredential();
   }
 
   async saveCredential() {
@@ -76,13 +84,15 @@ class Base {
       this.email,
       this.password,
       this.cvv,
-      this.cookies
+      this.cookies,
+      this.proxy
     );
   }
 
   async launchBrowser() {
     // only open a browser if page wasnt passed, this means request came from autobuyer
     if (!this.autoBuyerRequest) {
+      Base.launchOptions.args.push(`--proxy-server=http://${this.proxy}`);
       this.browser = await puppeteer.launch(Base.launchOptions);
       this.page = await this.browser.newPage();
     }
@@ -97,7 +107,6 @@ class Base {
       return;
 
     await this.browser.close();
-    this.browser = null;
   }
 
   async verify(code) {
@@ -106,7 +115,7 @@ class Base {
     }
 
     try {
-      await this.storeContext.verifyLogin(code);
+      this.cookies = await this.storeContext.verifyLogin(code);
     } catch (e) {
       // close browser for any other error
       if (e === "Incorrect code, try again." || e === "verification") {

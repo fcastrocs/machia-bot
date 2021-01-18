@@ -1,7 +1,5 @@
 const Base = require("../base");
 
-const ADD2CART_URL = "https://www.bestbuy.com/cart/api/v1/addToCart";
-
 class Bestbuy extends Base {
   constructor(url, itemId, title) {
     super(url, "bestbuy", itemId, title);
@@ -16,10 +14,8 @@ class Bestbuy extends Base {
   }
 
   async purchase(credential) {
-    let cookies = JSON.parse(credential.cookies);
-
-    let lineId = await this.addToCartHandle(credential.userId, cookies);
-    let page = await this.launchBrowser(credential.userId, cookies);
+    let lineId = await this.addToCartHandle(credential);
+    let page = await this.launchBrowser(credential);
 
     // go to shopping cart
     await page.goto("https://www.bestbuy.com/cart");
@@ -56,16 +52,17 @@ class Bestbuy extends Base {
     if (!this.testMode) {
       await btn.click();
       await page.waitForTimeout(10000);
+      return;
     }
 
-    await this.removeItemFromCart(cookies, lineId);
+    await this.removeItemFromCart(credential, lineId);
   }
 
-  async addToCart(cookies) {
-    cookies = this.cookiesToString(cookies);
+  async addToCart(credential) {
+    let cookies = this.cookiesToString(credential.cookies);
 
     let options = {
-      url: ADD2CART_URL,
+      url: "https://www.bestbuy.com/cart/api/v1/addToCart",
       method: "post",
       cookies,
       data: { items: [{ skuId: this.itemId }] },
@@ -90,12 +87,12 @@ class Bestbuy extends Base {
     throw "Add to cart failed.";
   }
 
-  async removeItemFromCart(cookies, lineId) {
+  async removeItemFromCart(credential, lineId) {
     let options = {
       url: `https://www.bestbuy.com/cart/item/${lineId}`,
       origin: "https://www.bestbuy.com",
       method: "delete",
-      cookies: this.cookiesToString(cookies),
+      cookies: this.cookiesToString(credential.cookies),
     };
 
     await this.httpRequest(options);

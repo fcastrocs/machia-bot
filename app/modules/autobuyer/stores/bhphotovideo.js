@@ -14,9 +14,8 @@ class Bhphotovideo extends Base {
   }
 
   async purchase(credential) {
-    let cookies = JSON.parse(credential.cookies);
-    let page = await this.launchBrowser(credential.userId, cookies);
-    await this.addToCartHandle(credential.userId, cookies, page);
+    let page = await this.launchBrowser(credential);
+    await this.addToCartHandle(credential, page);
 
     // go to shopping cart
     await page.goto("https://www.bhphotovideo.com/find/cart.jsp", {
@@ -57,7 +56,7 @@ class Bhphotovideo extends Base {
     }
   }
 
-  async addToCart(cookies, page) {
+  async addToCart(credential, page) {
     await page.goto(this.url, { waitUntil: "networkidle0" });
 
     await page.waitForTimeout(1000);
