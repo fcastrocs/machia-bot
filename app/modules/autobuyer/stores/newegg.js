@@ -33,9 +33,12 @@ class Newegg extends Base {
 
     // go to checkout page
     console.log(`${userId}: opening checkout page.`);
-    let btn = await page.waitForXPath("//button[contains(text(), ' Secure Checkout ')]", {
-      visible: true,
-    });
+    let btn = await page.waitForXPath(
+      "//button[contains(text(), ' Secure Checkout ')]",
+      {
+        visible: true,
+      }
+    );
 
     let needLogin = false;
 
@@ -61,9 +64,12 @@ class Newegg extends Base {
 
     // continuing to payment
     console.log(`${userId}: continuing to payment.`);
-    btn = await page.waitForXPath("//button[contains(text(), 'Continue to payment')]", {
-      visible: true,
-    });
+    btn = await page.waitForXPath(
+      "//button[contains(text(), 'Continue to payment')]",
+      {
+        visible: true,
+      }
+    );
     await btn.click();
 
     // input cvv
@@ -75,9 +81,12 @@ class Newegg extends Base {
 
     // revewing order
     console.log(`${userId}: reviewing order.`);
-    btn = await page.waitForXPath("//button[contains(text(), 'Review your order')]", {
-      visible: true,
-    });
+    btn = await page.waitForXPath(
+      "//button[contains(text(), 'Review your order')]",
+      {
+        visible: true,
+      }
+    );
     await btn.click();
 
     // submitting order
@@ -89,23 +98,29 @@ class Newegg extends Base {
       await btn.click();
       await page.waitForTimeout(10000);
       let cookies = await page.cookies();
-      this.cookies.set(credential.userId, cookies);
+      this.cookies.set(userId, cookies);
       return;
     }
 
     // empty cart
     console.log(`${userId}: emptying cart.`);
     await page.goto("https://secure.newegg.com/shop/cart");
-    btn = await page.waitForSelector('button[data-target="#Popup_Remove_All"]', { visible: true });
+    btn = await page.waitForSelector(
+      'button[data-target="#Popup_Remove_All"]',
+      { visible: true }
+    );
     await btn.click();
 
-    btn = await page.waitForXPath("//button[contains(text(), 'Yes, Remove all of them.')]", {
-      visible: true,
-    });
+    btn = await page.waitForXPath(
+      "//button[contains(text(), 'Yes, Remove all of them.')]",
+      {
+        visible: true,
+      }
+    );
     await btn.click();
     await page.waitForTimeout(1500);
     let cookies = await page.cookies();
-    this.cookies.set(credential.userId, cookies);
+    this.cookies.set(userId, cookies);
   }
 
   /**
