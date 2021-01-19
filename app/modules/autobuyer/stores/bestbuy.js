@@ -14,10 +14,13 @@ class Bestbuy extends Base {
   }
 
   async purchase(credential) {
+    let userId = credential.userId;
+
     let lineId = await this.addToCartHandle(credential);
     let page = await this.launchBrowser(credential);
 
     // go to shopping cart
+    console.log(`${userId}: adding to cart.`);
     await page.goto("https://www.bestbuy.com/cart");
 
     // click check out
@@ -34,28 +37,36 @@ class Bestbuy extends Base {
 
     // need to signin
     if (p[0].status() !== 302) {
+      console.log(`${userId}: logging in.`);
       await this.loginHandle(credential, page);
-      await page.waitForTimeout(2000);
     }
 
     //input cvv
+    console.log(`${userId}: entering cvv.`);
     let input = await page.waitForSelector("#credit-card-cvv", {
       visible: true,
     });
     await input.type(credential.cvv);
 
     //place order
+    console.log(`${userId}: placing order.`);
     btn = await page.waitForSelector(
-      'button[data-track="Place your Order - Contact Card"]'
+      'button[data-track="Place your Order - Contact Card"]',
+      { visible: true }
     );
 
     if (!this.testMode) {
       await btn.click();
       await page.waitForTimeout(10000);
+      let cookies = await page.cookies();
+      this.cookies.set(userId, cookies);
       return;
     }
 
+    console.log(`${userId}: emptying cart.`);
     await this.removeItemFromCart(credential, lineId);
+    let cookies = await page.cookies();
+    this.cookies.set(userId, cookies);
   }
 
   async addToCart(credential) {
