@@ -16,14 +16,17 @@ class Bestbuy extends Base {
   async purchase(credential) {
     let userId = credential.userId;
 
+    // adding to cart
+    console.log(`${userId}: adding to cart.`);
     let lineId = await this.addToCartHandle(credential);
     let page = await this.launchBrowser(credential);
 
-    // go to shopping cart
-    console.log(`${userId}: adding to cart.`);
+    // opening cart
+    console.log(`${userId}: opening cart.`);
     await page.goto("https://www.bestbuy.com/cart");
 
     // click check out
+    console.log(`${userId}: going to checkout.`);
     let btn = await page.waitForSelector(
       'button[data-track="Checkout - Top"]',
       { visible: true }
@@ -76,6 +79,7 @@ class Bestbuy extends Base {
       url: "https://www.bestbuy.com/cart/api/v1/addToCart",
       method: "post",
       cookies,
+      proxy: credential.proxy,
       data: { items: [{ skuId: this.itemId }] },
       origin: "https://www.bestbuy.com",
     };
@@ -104,6 +108,7 @@ class Bestbuy extends Base {
       origin: "https://www.bestbuy.com",
       method: "delete",
       cookies: this.cookiesToString(credential.cookies),
+      proxy: credential.proxy,
     };
 
     await this.httpRequest(options);

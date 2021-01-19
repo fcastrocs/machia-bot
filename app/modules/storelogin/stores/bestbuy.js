@@ -22,7 +22,7 @@ class Bestbuy extends Base {
       await this.page.goto(LOGIN_URL);
 
       // Enter email
-      let input = await this.page.waitForSelector("#fld-e");
+      let input = await this.page.waitForSelector("#fld-e", { visible: true });
       await input.type(this.email);
 
       // Remember me checkbox
@@ -31,7 +31,7 @@ class Bestbuy extends Base {
     }
 
     // Enter password
-    let input = await this.page.waitForSelector("#fld-p1");
+    let input = await this.page.waitForSelector("#fld-p1", { visible: true });
     await input.type(this.password);
 
     let btn = await this.page.waitForSelector("[data-track='Sign In']");
@@ -52,7 +52,7 @@ class Bestbuy extends Base {
       return await this.page.cookies();
     }
 
-    // Sometimes it sends 'success' status
+    // Sometimes it sends 'success' status? verify this later
     if (res.status === "success") {
       return await this.page.cookies();
     }
@@ -76,6 +76,11 @@ class Bestbuy extends Base {
     }
 
     let input = await this.page.waitForSelector("#verificationCode");
+    await input.focus();
+    // erase previous input
+    for (let i = 0; i < 6; i++) {
+      await this.page.keyboard.press("Backspace");
+    }
     await input.type(code);
 
     let btn = await this.page.waitForSelector(
