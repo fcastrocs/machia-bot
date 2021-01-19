@@ -105,12 +105,9 @@ class Base {
     console.log(`${this.store}:${this.itemId} scrapped.`);
   }
 
-  stop() {
-    if (!this.isRunning) return;
-    clearInterval(this.interval);
-    this.isRunning = false;
-  }
-
+  /**
+   * fetch html from url
+   */
   async fetch(url) {
     const config = {
       timeout: process.env.SCRAPE_INTERVAL - 500,
@@ -141,20 +138,35 @@ class Base {
     }
   }
 
+  /**
+   * Stop checker
+   */
+  stop() {
+    if (!this.isRunning) return;
+    clearInterval(this.interval);
+    this.isRunning = false;
+  }
+
+  /**
+   * Check whether a checker for this product already exists.
+   */
   isDuplicate() {
     return CheckerService.has(this.store, this.itemId);
   }
 
+  /**
+   * Returns whether product is available to purchase
+   */
   isAvailable() {
     return !this.outOfStock;
   }
 
+  /**
+   * Setter for scraped product data
+   */
   setValues(title, itemId, outOfStock) {
     this.title = title;
-    //parsed from url
-    if (itemId) {
-      this.itemId = itemId;
-    }
+    this.itemId = itemId;
     this.outOfStock = outOfStock;
   }
 }

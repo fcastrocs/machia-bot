@@ -30,8 +30,12 @@ class Newegg extends Base {
       await this.page.waitForTimeout(35000);
     }
 
+    let input = await this.page.waitForSelector("input[name=signEmail]", {
+      visible: true,
+    });
+
     // Enter email
-    await this.page.type("input[name=signEmail]", this.email);
+    await input.type(this.email);
     await this.page.keyboard.press("Tab");
 
     //click submit button
@@ -60,8 +64,12 @@ class Newegg extends Base {
       throw "Unexpected error.";
     }
 
+    input = await this.page.waitForSelector("input[name=password]", {
+      visible: true,
+    });
+
     // Enter password
-    await this.page.type("input[name=password]", this.password);
+    await input.type(this.password);
     await this.page.keyboard.press("Tab");
 
     // Auto-buyer login should not require code verificaiton.
