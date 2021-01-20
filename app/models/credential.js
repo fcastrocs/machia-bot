@@ -9,6 +9,8 @@ const credential = new Schema({
   store: { type: String, required: true },
   email: { type: String, required: true },
   password: { type: String, required: true },
+  cardNum: { type: String, required: false, length: 16 },
+  exp: { type: String, required: false, length: 4 },
   cvv: { type: String, required: true, length: 3 },
   cookies: { type: String, required: true },
   proxy: { type: String, required: true },
@@ -19,10 +21,12 @@ credential.index({ userId: 1, store: 1 }, { unique: true });
 
 credential.pre("findOneAndUpdate", function (next) {
   let self = this.getUpdate();
-  self.email = encrypt(self.email);
-  self.password = encrypt(self.password);
-  self.cookies = encrypt(self.cookies);
-  self.cvv = encrypt(self.cvv);
+  if (self.email) self.email = encrypt(self.email);
+  if (self.password) self.password = encrypt(self.password);
+  if (self.cardNum) self.cardNum = encrypt(self.cardNum);
+  if (self.exp) self.exp = encrypt(self.exp);
+  if (self.cvv) self.cvv = encrypt(self.cvv);
+  if (self.cookies) self.cookies = encrypt(self.cookies);
   next();
 });
 
@@ -32,6 +36,8 @@ credential.post("findOne", (doc, next) => {
     doc.password = decrypt(doc.password);
     doc.cvv = decrypt(doc.cvv);
     doc.cookies = decrypt(doc.cookies);
+    if (doc.cardNum) doc.cardNum = decrypt(doc.cardNum);
+    if (doc.exp) doc.exp = decrypt(doc.exp);
   }
   next();
 });

@@ -35,6 +35,7 @@ class Bhphotovideo extends Base {
         visible: true,
       });
 
+      // it seems a mouse click is needed to beat anti-bot system.
       let box = await btn.boundingBox();
       await this.page.mouse.click(box.x, box.y);
     }

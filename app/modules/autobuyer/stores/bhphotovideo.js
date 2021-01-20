@@ -30,8 +30,8 @@ class Bhphotovideo extends Base {
     let p = await Promise.all([
       page.waitForResponse(
         (res) =>
-          res.url().includes("home?O=cart&A=cart&Q=update") ||
-          res.url().includes("checkoutLogin=Y")
+          res.url().includes("home?O=cart&A=cart&Q=update") || // not required
+          res.url().includes("checkoutLogin=Y") // login required
       ),
       btn.click(),
     ]);
@@ -39,7 +39,7 @@ class Bhphotovideo extends Base {
     let html = await p[0].text();
 
     // need to login
-    if (html.includes("user-input")) {
+    if (html.includes("loginFormLayer")) {
       console.log("Signing in...");
       await this.loginHandle(credential, page);
     }
@@ -53,6 +53,10 @@ class Bhphotovideo extends Base {
 
     if (!this.testMode) {
       await btn.click();
+      await page.waitForTimeout(10000);
+      let cookies = await page.cookies();
+      this.cookies.set(credential.userId, cookies);
+      return;
     }
   }
 
@@ -77,6 +81,37 @@ class Bhphotovideo extends Base {
 
     if (res.type !== "ok") {
       throw res;
+    }
+  }
+
+  async emptyCart(credential, page) {
+    await page.goto("https://www.bhphotovideo.com/find/cart.jsp");
+    let btn = await page.waitForSelector(
+      'span[data-selenium="remove-all-items"]',
+      { visible: true }
+    );
+    await btn.click();
+
+    btn = await page.waitForSelector('button[data-selenium="confirm-remove"]', {
+      visible: true,
+    });
+
+    let p = await Promise.all([
+      page.waitForResponse((res) =>
+        res.url().includes("?Q=json&A=clearCart&O=")
+      ),
+      btn.click(),
+    ]);
+
+    try {
+      var res = await p[0].json();
+    } catch (e) {
+      throw "Couldn't empty cart.";
+    }
+
+    if (res.status !== "success") {
+      console.error(res);
+      throw "Unexpecting error while emptying cart.";
     }
   }
 }

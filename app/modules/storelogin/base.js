@@ -17,12 +17,21 @@ class Base {
     this.autoBuyerRequest = false;
   }
 
-  setUserData(userId, email, password, cvv, proxy) {
+  setUserData(userId, email, password, proxy) {
     this.userId = userId;
     this.email = email;
     this.password = password;
-    this.cvv = cvv;
     this.proxy = proxy;
+  }
+
+  async storeCookies() {
+    // only store cookies when login request came from auto-buyer
+    if (!this.autoBuyerRequest) return;
+    await Credential.set(this.userId, this.store, [this.cookies]);
+  }
+
+  getCookies() {
+    return this.cookies;
   }
 
   setAutoBuyerRequest(page) {
@@ -55,7 +64,7 @@ class Base {
     try {
       this.cookies = await this.storeContext.login();
       await this.closeBrowser();
-      await this.saveCredential();
+      await this.storeCookies();
     } catch (e) {
       // save store instance if verification is needed
       if (e === "verification") {
@@ -75,18 +84,6 @@ class Base {
       }
       throw e;
     }
-  }
-
-  async saveCredential() {
-    await Credential.set(
-      this.userId,
-      this.store,
-      this.email,
-      this.password,
-      this.cvv,
-      this.cookies,
-      this.proxy
-    );
   }
 
   async launchBrowser() {
@@ -134,7 +131,7 @@ class Base {
 
     await this.closeBrowser();
     Verification.remove(this.userId);
-    await this.saveCredential();
+    await this.storeCookies();
   }
 }
 

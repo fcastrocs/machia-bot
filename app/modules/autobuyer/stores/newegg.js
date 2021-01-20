@@ -104,23 +104,7 @@ class Newegg extends Base {
 
     // empty cart
     console.log(`${userId}: emptying cart.`);
-    await page.goto("https://secure.newegg.com/shop/cart");
-    btn = await page.waitForSelector(
-      'button[data-target="#Popup_Remove_All"]',
-      { visible: true }
-    );
-    await btn.click();
-
-    btn = await page.waitForXPath(
-      "//button[contains(text(), 'Yes, Remove all of them.')]",
-      {
-        visible: true,
-      }
-    );
-    await btn.click();
-    await page.waitForTimeout(1500);
-    let cookies = await page.cookies();
-    this.cookies.set(userId, cookies);
+    await this.emptyCart(credential, page);
   }
 
   /**
@@ -194,6 +178,27 @@ class Newegg extends Base {
     if (res.status !== 201) {
       throw res;
     }
+  }
+
+  async emptyCart(credential, page) {
+    await page.goto("https://secure.newegg.com/shop/cart");
+    let btn = await page.waitForSelector(
+      'button[data-target="#Popup_Remove_All"]',
+      { visible: true }
+    );
+    await btn.click();
+
+    btn = await page.waitForXPath(
+      "//button[contains(text(), 'Yes, Remove all of them.')]",
+      {
+        visible: true,
+      }
+    );
+    await btn.click();
+    await page.waitForTimeout(1500);
+
+    let cookies = await page.cookies();
+    this.cookies.set(credential.userId, cookies);
   }
 }
 
