@@ -17,11 +17,20 @@ class Base {
     this.autoBuyerRequest = false;
   }
 
-  setUserData(userId, email, password, proxy) {
+  setUserData(userId, email, password, proxy, cvv) {
     this.userId = userId;
     this.email = email;
     this.password = password;
     this.proxy = proxy;
+    this.cvv = cvv;
+  }
+
+  getUserData() {
+    return {
+      userId: this.userId,
+      store: this.store,
+      data: [this.email, this.password, this.proxy, this.cvv, this.cookies],
+    };
   }
 
   async storeCookies() {

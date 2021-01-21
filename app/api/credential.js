@@ -49,7 +49,13 @@ functions.set = async function set(userId, data) {
 
   // try to login and store credential.
   let storeLogin = new StoreLogin(store);
-  storeLogin.setUserData(userId, data[0], data[1], data[2]);
+  storeLogin.setUserData(
+    userId,
+    data[0],
+    data[1],
+    data[2],
+    data[data.length - 1]
+  );
   await storeLogin.start();
   let cookies = storeLogin.getCookies();
   data.push(cookies);
@@ -60,6 +66,8 @@ functions.verify = async function verify(userId, [code]) {
   let storeLogin = new StoreLogin();
   storeLogin = storeLogin.getVerifyInstance(userId);
   await storeLogin.verify(code);
+  let obj = storeLogin.getUserData();
+  await Credential.set(obj.userId, obj.store, obj.data);
 };
 
 function validEmail(email) {
