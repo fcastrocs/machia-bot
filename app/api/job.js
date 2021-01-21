@@ -173,11 +173,11 @@ module.exports = async (fn, userId, args) => {
   RateLimit.add(userId);
 
   try {
-    await functions[fn](userId, ...args);
+    var res = await functions[fn](userId, ...args);
   } catch (e) {
     RateLimit.remove(userId);
     throw e;
   }
-
   RateLimit.remove(userId);
+  return res;
 };

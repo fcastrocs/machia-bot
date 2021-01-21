@@ -157,7 +157,7 @@ bot.on("message", async (msg) => {
 
     let store = msg.replace("!mylist ", "");
 
-    let list = await Job("myList", [userId, store]);
+    let list = await Job("myList", userId, [store]);
     if (list.length === 0) {
       return sendDm(
         "You don't have any items on auto-buy for this store.",
@@ -178,7 +178,7 @@ bot.on("message", async (msg) => {
   }
 
   if (msg === "!list") {
-    let map = await Job("list", userId);
+    let map = await Job("list", userId, []);
     if (!map) {
       return sendDm("I am not tracking any products.", userId);
     }
@@ -307,7 +307,7 @@ bot.on("ready", async () => {
   await Proxy.fetch();
 
   console.log("Restoring jobs...");
-  //await Job("restore");
+  await Job("restore");
   events();
   console.log("Bot is ready.");
 });
