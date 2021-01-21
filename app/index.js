@@ -202,11 +202,10 @@ function sendMessage(msg) {
 }
 
 function sendDm(msg, userId) {
-  console.log(msg);
   try {
     bot.users.cache.get(userId).send(msg);
   } catch (error) {
-    console.error("Couldn't send a DM to this user");
+    console.error(error);
   }
 }
 

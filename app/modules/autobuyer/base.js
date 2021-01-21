@@ -223,19 +223,15 @@ class Base {
     return page;
   }
 
-  async closeBrowser(credential) {
+  async updateCookies(credential) {
     let cookies = this.cookies.get(credential.userId);
     if (cookies) {
-      Credential.set(
-        credential.userId,
-        this.store,
-        credential.email,
-        credential.password,
-        credential.cvv,
-        cookies,
-        credential.proxy
-      );
+      await Credential.set(credential.userId, this.store, [cookies]);
     }
+  }
+
+  async closeBrowser(credential) {
+    await this.updateCookies(credential);
     if (process.env.DONTCLOSE === "true") return;
     let browser = this.browsers.get(credential.userId);
     if (!browser) return;
@@ -248,7 +244,6 @@ class Base {
       credential.userId,
       credential.email,
       credential.password,
-      credential.cvv,
       credential.proxy
     );
     storeLogin.setAutoBuyerRequest(page);

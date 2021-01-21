@@ -8,7 +8,6 @@ const Credential = require("../models/credential");
  */
 async function set(userId, store, data) {
   let newData = new Object();
-  console.log(data.length);
 
   // updating cookies
   if (data.length === 1) {
