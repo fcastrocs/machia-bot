@@ -102,7 +102,7 @@ class Base {
       }
       throw e;
     }
-    console.log(`${this.store}:${this.itemId} scrapped.`);
+    //console.log(`${this.store}:${this.itemId} scrapped.`);
   }
 
   /**
