@@ -307,7 +307,7 @@ bot.on("ready", async () => {
   await Proxy.fetch();
 
   console.log("Restoring jobs...");
-  //await Job("restore");
+  await Job("restore");
   events();
   console.log("Bot is ready.");
 });
