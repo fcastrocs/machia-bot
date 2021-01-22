@@ -102,7 +102,7 @@ class Base {
       }
       throw e;
     }
-    //console.log(`${this.store}:${this.itemId} scrapped.`);
+    console.log(`${this.store}:${this.itemId} scrapped.`);
   }
 
   /**
@@ -133,7 +133,7 @@ class Base {
       let res = await axios.get(url, config);
       return res.data;
     } catch (e) {
-      console.error(`${this.store}:${this.itemId} scrape failed: ${e}`);
+      //console.error(`${this.store}:${this.itemId} scrape failed: ${e}`);
       throw "Couldn't load page, try again.";
     }
   }
