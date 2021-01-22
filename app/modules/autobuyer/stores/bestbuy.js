@@ -20,7 +20,7 @@ class Bestbuy extends Base {
     // adding to cart
     console.log(`${userId}: adding to cart.`);
     let page = await this.launchBrowser(credential);
-    let lineId = await this.addToCartHandle(credential);
+    let lineId = await this.addToCartHandle(credential, page);
 
     // opening cart
     console.log(`${userId}: opening cart.`);
