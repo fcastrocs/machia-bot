@@ -52,6 +52,7 @@ class Base {
    */
   async startPurchases(storeContext) {
     this.storeContext = storeContext;
+    console.log("Auto-Purchase is starting...")
 
     emitter.emit("autobuyer-start", { url: this.url, title: this.title });
 
