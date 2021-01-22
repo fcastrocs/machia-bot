@@ -7,7 +7,7 @@ const options = {
     "--disable-setuid-sandbox",
     "--single-process",
   ],
-  headless: process.env.NODE_ENV === "production" ? true : false,
+  headless: process.env.NODE_ENV === "production" ? true : true,
 };
 
 module.exports = options;

@@ -1,4 +1,5 @@
 const Base = require("../base");
+const retry = require("retry");
 
 class Bestbuy extends Base {
   constructor(url, itemId, title) {
@@ -18,8 +19,8 @@ class Bestbuy extends Base {
 
     // adding to cart
     console.log(`${userId}: adding to cart.`);
-    let lineId = await this.addToCartHandle(credential);
     let page = await this.launchBrowser(credential);
+    let lineId = await this.addToCartHandle(credential);
 
     // opening cart
     console.log(`${userId}: opening cart.`);
@@ -72,34 +73,56 @@ class Bestbuy extends Base {
     this.cookies.set(userId, cookies);
   }
 
-  async addToCart(credential) {
-    let cookies = this.cookiesToString(credential.cookies);
+  async addToCart(credential, page) {
+    await page.goto(this.url);
 
-    let options = {
-      url: "https://www.bestbuy.com/cart/api/v1/addToCart",
-      method: "post",
-      cookies,
-      proxy: credential.proxy,
-      data: { items: [{ skuId: this.itemId }] },
-      origin: "https://www.bestbuy.com",
-    };
+    let btn = await page.waitForSelector('button[data-sku-id="6318342"]', {
+      visible: true,
+    });
 
-    let res = await this.httpRequest(options);
-    if (res.statusText !== "OK") {
-      throw "Add to cart failed.";
-    }
-
-    if (!res.data.summaryItems) {
-      throw "Add to cart failed.";
-    }
-
-    for (let item of res.data.summaryItems) {
-      if (item.skuId === this.itemId) {
-        return item.lineId;
+    let isDisabled = await page.$eval(
+      'button[data-sku-id="6318342"]',
+      (button) => {
+        return button.disabled;
       }
+    );
+
+    if (isDisabled) {
+      throw "Add to cart failed, button is disabled.";
     }
 
-    throw "Add to cart failed.";
+    await btn.click();
+    await page.waitForTimeout(3000);
+    await this.waitButtonEnabled(page, 'button[data-sku-id="6318342"]');
+    btn = await page.waitForSelector('button[data-sku-id="6318342"]', {
+      visible: true,
+    });
+    await btn.click();
+  }
+
+  waitButtonEnabled(page, selector) {
+    var operation = retry.operation({
+      retries: 2000,
+      minTimeout: 500,
+      maxTimeout: 500,
+    });
+
+    return new Promise((resolve, reject) => {
+      operation.attempt(async function () {
+        let isDisabled = await page.$eval(selector, (button) => {
+          return button.disabled;
+        });
+
+        if (isDisabled) {
+          if (operation.retry(new Error("button is disabled"))) {
+            return;
+          }
+          reject(new Error("button is disabled"));
+        } else {
+          resolve();
+        }
+      });
+    });
   }
 
   async removeItemFromCart(credential, lineId) {
