@@ -25,6 +25,7 @@ class Bestbuy extends Base {
     // opening cart
     console.log(`${userId}: opening cart.`);
     await page.goto("https://www.bestbuy.com/cart");
+    await page.waitForTimeout(3000)
 
     // click check out
     console.log(`${userId}: going to checkout.`);
@@ -74,18 +75,33 @@ class Bestbuy extends Base {
   }
 
   async addToCart(credential, page) {
-    await page.goto(this.url);
-
-    let btn = await page.waitForSelector('button[data-sku-id="6318342"]', {
+    await page.goto(this.url.replace("?intl=nosplash", ""));
+    console.log(this.url)
+    await page.screenshot({
+      path: "./screenshot.jpg",
+      type: "jpeg",
+      fullPage: true
+    });
+    let btn = await page.waitForSelector(`button[data-sku-id="${this.itemId}"]`, {
       visible: true,
+      timeout: 3000
     });
 
     let isDisabled = await page.$eval(
-      'button[data-sku-id="6318342"]',
+      `button[data-sku-id="${this.itemId}"]`,
       (button) => {
         return button.disabled;
       }
     );
+
+    let text = await page.$eval(
+      `button[data-sku-id="${this.itemId}"]`,
+      (button) => {
+        return button.text;
+      }
+    );
+
+    console.log(text)
 
     if (isDisabled) {
       throw "Add to cart failed, button is disabled.";
