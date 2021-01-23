@@ -307,8 +307,11 @@ bot.on("ready", async () => {
   console.log("Getting proxies...");
   await Proxy.fetch();
 
-  console.log("Restoring jobs...");
-  await Job("restore");
+  if (process.env.NODE_ENV === "production") {
+    console.log("Restoring jobs...");
+    await Job("restore");
+  }
+
   events();
   console.log("Bot is ready.");
   sendMessage("I'm back online.");
