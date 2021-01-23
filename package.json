@@ -14,14 +14,15 @@
     "cheerio": "^1.0.0-rc.5",
     "discord.js": "^12.5.1",
     "https-proxy-agent": "^5.0.0",
-    "mongoose": "^5.11.11",
+    "mongoose": "^5.11.13",
+    "playwright": "^1.8.0",
     "puppeteer": "^5.5.0",
-    "puppeteer-extra": "^3.1.15",
-    "puppeteer-extra-plugin-stealth": "^2.6.5",
+    "puppeteer-extra": "^3.1.16",
+    "puppeteer-extra-plugin-stealth": "^2.6.6",
     "retry": "^0.12.0"
   },
   "devDependencies": {
-    "eslint": "^7.17.0",
+    "eslint": "^7.18.0",
     "performance-now": "^2.1.0"
   }
 }

@@ -5,9 +5,7 @@
 
 "use strict";
 
-const puppeteer = require("puppeteer-extra").default;
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-puppeteer.use(StealthPlugin());
+const { firefox } = require("playwright");
 // puppeteer launch options
 const launchOptions = require("../../configs/puppeteer");
 
@@ -52,7 +50,7 @@ class Base {
    */
   async startPurchases(storeContext) {
     this.storeContext = storeContext;
-    console.log("Auto-Purchase is starting...")
+    console.log("Auto-Purchase is starting...");
 
     emitter.emit("autobuyer-start", { url: this.url, title: this.title });
 
@@ -216,11 +214,19 @@ class Base {
   }
 
   async launchBrowser(credential) {
-    launchOptions.args.push(`--proxy-server=http://${credential.proxy}`);
-    let browser = await puppeteer.launch(launchOptions);
-    this.browsers.set(credential.userId, browser);
-    let page = await browser.newPage();
-    await page.setCookie(...credential.cookies);
+    for (let cookie of credential.cookies) {
+      if (cookie.value === "" || !cookie.value) {
+        cookie.value = "1";
+      }
+    }
+
+    launchOptions.proxy = {
+      server: `http://${credential.proxy}`,
+    };
+    const browser = await firefox.launch(launchOptions);
+    const context = await browser.newContext();
+    await context.addCookies(credential.cookies);
+    const page = await context.newPage();
     return page;
   }
 

@@ -20,12 +20,12 @@ class Bestbuy extends Base {
     // adding to cart
     console.log(`${userId}: adding to cart itemId ${this.itemId}`);
     let page = await this.launchBrowser(credential);
-    let lineId = await this.addToCartHandle(credential, page);
+    await this.addToCartHandle(credential, page);
 
     // opening cart
     console.log(`${userId}: opening cart.`);
     await page.goto("https://www.bestbuy.com/cart");
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(3000);
 
     // click check out
     console.log(`${userId}: going to checkout.`);
@@ -63,29 +63,38 @@ class Bestbuy extends Base {
     if (!this.testMode) {
       await btn.click();
       await page.waitForTimeout(10000);
-      let cookies = await page.cookies();
+      let context = page.context();
+      let cookies = await context.cookies();
       this.cookies.set(userId, cookies);
       return;
     }
 
     console.log(`${userId}: emptying cart.`);
-    await this.removeItemFromCart(credential, lineId);
-    let cookies = await page.cookies();
+    await this.removeItemFromCart(page);
+    let context = page.context();
+    let cookies = await context.cookies();
     this.cookies.set(userId, cookies);
+    await page.waitForTimeout(5000);
   }
 
   async addToCart(credential, page) {
     await page.goto(this.url.replace("?intl=nosplash", ""));
-    console.log(this.url)
+    await page.waitForTimeout(3000);
+
     await page.screenshot({
       path: "./screenshot.jpg",
       type: "jpeg",
-      fullPage: true
+      fullPage: true,
     });
-    let btn = await page.waitForSelector(`button[data-sku-id="${this.itemId}"]`, {
-      visible: true,
-      timeout: 3000
-    });
+
+    // get add to cart button
+    let btn = await page.waitForSelector(
+      `button[data-sku-id="${this.itemId}"]`,
+      {
+        visible: true,
+        timeout: 3000,
+      }
+    );
 
     let isDisabled = await page.$eval(
       `button[data-sku-id="${this.itemId}"]`,
@@ -97,23 +106,66 @@ class Bestbuy extends Base {
     let text = await page.$eval(
       `button[data-sku-id="${this.itemId}"]`,
       (button) => {
-        return button.text;
+        return button.textContent;
       }
     );
 
-    console.log(text)
-
-    if (isDisabled) {
-      throw "Add to cart failed, button is disabled.";
+    // item is sold out
+    if (isDisabled && text.includes("Sold Out")) {
+      throw "Add to cart failed, item sold out.";
     }
 
-    await btn.click();
-    await page.waitForTimeout(3000);
-    await this.waitButtonEnabled(page, 'button[data-sku-id="6318342"]');
-    btn = await page.waitForSelector('button[data-sku-id="6318342"]', {
-      visible: true,
-    });
-    await btn.click();
+    // add to cart
+    if (!isDisabled && text.includes("Add to Cart")) {
+      await btn.click();
+      console.log(
+        `${credential.userId}: clicked add to cart itemId ${this.itemId}.`
+      );
+      await page.waitForTimeout(3000);
+    }
+
+    // get button properties again, because button was clicked
+    isDisabled = await page.$eval(
+      `button[data-sku-id="${this.itemId}"]`,
+      (button) => {
+        return button.disabled;
+      }
+    );
+
+    text = await page.$eval(
+      `button[data-sku-id="${this.itemId}"]`,
+      (button) => {
+        return button.textContent;
+      }
+    );
+
+    // Placed on queue system, wait to be re-enabled
+    if (isDisabled && text.includes("Please Wait")) {
+      console.log(
+        `${credential.userId}: placed on queue, waiting, itemId ${this.itemId}...`
+      );
+      await this.waitButtonEnabled(page, 'button[data-sku-id="6318342"]');
+      btn = await page.waitForSelector('button[data-sku-id="6318342"]', {
+        visible: true,
+      });
+      console.log(
+        `${credential.userId}: released from queue, itemId ${this.itemId}.`
+      );
+      await btn.click();
+      console.log(
+        `${credential.userId}: clicked add to cart again, itemId ${this.itemId}.`
+      );
+      await page.waitForTimeout(3000);
+    } else if (isDisabled && text.includes("Sold Out")) {
+      // item is sold out
+      throw "Add to cart failed, item sold out.";
+    }
+
+    // released from queue or item doesn't use queue system, wait for modal to say "added to cart"
+    await page.waitForSelector(".added-to-cart", { visible: true });
+    console.log(
+      `${credential.userId}: successfully added to cart, itemId ${this.itemId}.`
+    );
   }
 
   waitButtonEnabled(page, selector) {
@@ -141,16 +193,11 @@ class Bestbuy extends Base {
     });
   }
 
-  async removeItemFromCart(credential, lineId) {
-    let options = {
-      url: `https://www.bestbuy.com/cart/item/${lineId}`,
-      origin: "https://www.bestbuy.com",
-      method: "delete",
-      cookies: this.cookiesToString(credential.cookies),
-      proxy: credential.proxy,
-    };
-
-    await this.httpRequest(options);
+  async removeItemFromCart(page) {
+    await page.goto("https://www.bestbuy.com/cart");
+    let selector = `section[auto-test-sku="${this.itemId}"] .fluid-item__actions > a[title="Remove"]`;
+    let btn = await page.waitForSelector(selector, { visible: true });
+    await btn.click();
   }
 }
 

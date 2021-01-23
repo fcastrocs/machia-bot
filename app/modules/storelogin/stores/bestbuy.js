@@ -49,12 +49,14 @@ class Bestbuy extends Base {
       var res = await p[0].json();
     } catch (error) {
       // successful login
-      return await this.page.cookies();
+      let context = await this.page.context();
+      return await context.cookies();
     }
 
     // Sometimes it sends 'success' status? verify this later
     if (res.status === "success") {
-      return await this.page.cookies();
+      let context = await this.page.context();
+      return await context.cookies();
     }
 
     if (res.status === "stepUpRequired") {
@@ -99,11 +101,13 @@ class Bestbuy extends Base {
       var res = await p[0].json();
     } catch (e) {
       //successful verify
-      return await this.page.cookies();
+      let context = await this.page.context();
+      return await context.cookies();
     }
 
     if (res.status === "success") {
-      return await this.page.cookies();
+      let context = await this.page.context();
+      return await context.cookies();
     }
 
     if (res.status === "failure") {

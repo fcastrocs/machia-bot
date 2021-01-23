@@ -2,9 +2,7 @@
 
 const Verification = require("../../services/verification");
 const Credential = require("../../services/credential");
-const puppeteer = require("puppeteer-extra");
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-puppeteer.use(StealthPlugin());
+const { firefox } = require("playwright");
 
 class Base {
   constructor(store) {
@@ -98,9 +96,12 @@ class Base {
   async launchBrowser() {
     // only open a browser if page wasnt passed, this means request came from autobuyer
     if (!this.autoBuyerRequest) {
-      Base.launchOptions.args.push(`--proxy-server=http://${this.proxy}`);
-      this.browser = await puppeteer.launch(Base.launchOptions);
-      this.page = await this.browser.newPage();
+      Base.launchOptions.proxy = {
+        server: `http://${this.proxy}`,
+      };
+      this.browser = await firefox.launch(Base.launchOptions);
+      const context = await this.browser.newContext();
+      this.page = await context.newPage();
     }
   }
 
