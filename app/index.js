@@ -270,7 +270,7 @@ function events() {
   });
 
   emitter.on("autobuyer-start", (values) => {
-    console.log(values)
+    console.log(values);
     const embed = {
       title: "Product is in stock, I am attemping purchases now!",
       description: `[${values.title}](${values.url})`,
@@ -311,4 +311,5 @@ bot.on("ready", async () => {
   await Job("restore");
   events();
   console.log("Bot is ready.");
+  sendMessage("I'm back online.");
 });
