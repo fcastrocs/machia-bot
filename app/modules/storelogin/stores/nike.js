@@ -2,7 +2,7 @@
 
 const Base = require("../base");
 
-const LOGIN_URL = "https://arh.antoinevastel.com/bots/areyouheadless";
+const LOGIN_URL = "https://www.nike.com/";
 
 class Nike extends Base {
   constructor() {
@@ -23,8 +23,6 @@ class Nike extends Base {
       await this.page.waitForTimeout(5000);
       await this.page.screenshot({ path: "example.png" });
     }
-
-    return;
 
     let btn = await this.page.waitForSelector('button[data-path="sign in"]', {
       visible: true,

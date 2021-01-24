@@ -22,9 +22,10 @@ class Bestbuy extends Base {
     let itemId = $(".sku > .product-data-value").text().trim();
     let title = $(".sku-title > .heading-5").text().trim();
 
-    let outOfStock = false;
-    if ($(`button[data-sku-id="${itemId}"]`).text() === "Sold Out") {
-      outOfStock = true;
+    let outOfStock = true;
+
+    if ($(`button[data-sku-id="${itemId}"]`).text().includes("Add to Cart")) {
+      outOfStock = false;
     }
 
     this.setValues(title, itemId, outOfStock);
