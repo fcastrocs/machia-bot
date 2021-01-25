@@ -314,5 +314,7 @@ bot.on("ready", async () => {
 
   events();
   console.log("Bot is ready.");
-  sendMessage("I'm back online.");
+  if (process.env.NODE_ENV === "production") {
+    sendMessage("I'm back online.");
+  }
 });
