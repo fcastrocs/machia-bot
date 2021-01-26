@@ -2,7 +2,7 @@ const Job = require("../services/job");
 const Credential = require("../services/credential");
 const UserItem = require("../services/userItem");
 const Store = require("../modules/store");
-const Checker = require("../modules/checker");
+const Monitor = require("../modules/monitor");
 const CheckerService = require("../services/checker");
 const RateLimit = require("../modules/ratelimit");
 
@@ -25,7 +25,7 @@ functions.restore = async function restore() {
       new Promise((resolve) => {
         (async function retry() {
           try {
-            await functions.start(null, job.url);
+            await functions.start(null, null, job.url);
             resolve();
           } catch (e) {
             return retry();
@@ -41,7 +41,7 @@ functions.restore = async function restore() {
 /**
  * starts a job
  */
-functions.start = async function start(userId, url) {
+functions.start = async function start(userId, autobuy, url) {
   let store = Store.urlToStore(url);
 
   if (!store) {
@@ -49,31 +49,37 @@ functions.start = async function start(userId, url) {
   }
 
   // User doesn't have credentials for this store
-  if (userId && !(await Credential.has(userId, store))) {
+  if (userId && autobuy && !(await Credential.has(userId, store))) {
     throw "You don't have credentials for this store.";
   }
 
-  let checker = new Checker(url, store);
-  await checker.getData();
+  let monitor = new Monitor(url, store);
+  let data = await monitor.getData();
 
-  if (checker.isAvailable()) {
+  if (monitor.isAvailable()) {
     throw "This product is already available.";
   }
 
-  // Check if this url has a checker
-  if (userId && checker.isDuplicate()) {
-    if (await UserItem.has(userId, checker.itemId, store)) {
-      throw "You already have this product on auto-buy.";
+  // duplicate monitor
+  if (userId && monitor.isDuplicate()) {
+    // autobuy request
+    if (autobuy) {
+      if (await UserItem.has(userId, data.itemId, store)) {
+        throw "You already have this product on auto-buy.";
+      } else {
+        await UserItem.add(userId, data.itemId, store, url, data.title);
+      }
     }
-    await UserItem.add(userId, checker.itemId, store, url, checker.title);
     return;
   }
 
-  checker.start();
+  // start monitor
+  monitor.start();
 
+  // store monitor and
   if (userId) {
-    await Job.add(checker.itemId, store, url);
-    await UserItem.add(userId, checker.itemId, store, url, checker.title);
+    await Job.add(data.itemId, store, url);
+    await UserItem.add(userId, data.itemId, store, url, data.title);
   }
 };
 

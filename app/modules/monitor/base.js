@@ -109,6 +109,8 @@ class Base {
       `${this.store}: couldn't parse itemID: ${this.itemId}`;
       throw "Couldn't parse this url.";
     }
+
+    return { itemId: this.itemId, title: this.title };
   }
 
   /**
