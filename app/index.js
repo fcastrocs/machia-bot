@@ -95,20 +95,43 @@ bot.on("message", async (msg) => {
   }
 
   if (msg.includes("!start")) {
+    let usage =
+      "This command starts a monitor with or without auto-buy:" +
+      "```!start URL```" +
+      "```!start autobuy URL```";
+
     if (msg === "!start") {
-      return sendDm("Usage: ```!start URL```", userId);
+      return sendDm(usage, userId);
     }
 
-    let url = msg.replace("!start ", "");
+    let msg = msg.replace("!start ", "");
+    msg = msg.split(" ");
 
-    sendDm("Starting auto-buy...", userId);
+    if (msg.length !== 1 && msg.length !== 2) {
+      return sendDm(usage, userId);
+    }
+
+    if (msg.length === 2 && msg[0] !== "autobuy") {
+      return sendDm(usage, userId);
+    }
+
+    if (msg.length === 2 && msg[0] === "autobuy") {
+      var autobuy = true;
+    }
+
+    sendDm("Starting monitor...", userId);
 
     try {
-      await Job("start", userId, [url]);
+      await Job("start", userId, msg);
     } catch (e) {
       return sendDm(e, userId);
     }
-    return sendDm("Auto-buy successfully started.", userId);
+
+    if (autobuy) {
+      return sendDm("Monitor with auto-buy successfully started.", userId);
+    }
+
+    return sendDm("Monitor successfully started.", userId);
   }
 
   if (msg.includes("!test")) {

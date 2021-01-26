@@ -100,14 +100,14 @@ class Base {
       await this.logDiscord(
         `${this.store}: couldn't scrape itemID: ${this.itemId}`
       );
-      throw "Couldn't scrape this url, try again.";
+      throw `Couldn't scrape this url.`;
     }
 
     try {
       this.storeContext.parse(data);
     } catch (e) {
       `${this.store}: couldn't parse itemID: ${this.itemId}`;
-      throw "Couldn't parse this url, try again.";
+      throw "Couldn't parse this url.";
     }
   }
 
@@ -166,6 +166,10 @@ class Base {
     this.outOfStock = outOfStock;
   }
 
+  /**
+   *
+   * Sends log message to discord channel
+   */
   async logDiscord(message) {
     try {
       await webhookClient.send(message);
