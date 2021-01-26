@@ -1,14 +1,18 @@
 "use strict";
 
-const cheerio = require("cheerio");
 const axios = require("axios").default;
 const httpsProxyAgent = require("https-proxy-agent");
 
 const CheckerService = require("../../services/checker");
-const Autobuyer = require("./../autobuyer");
+const Autobuyer = require("../autobuyer");
 const UserItem = require("../../services/userItem");
 const Job = require("../../services/job");
 const Proxy = require("../proxy");
+const Discord = require("discord.js");
+const webhookClient = new Discord.WebhookClient(
+  process.env.WEBHOOK_CHANNELID,
+  process.env.WEBHOOK_TOKEN
+);
 
 class Base {
   constructor(url, store) {
@@ -90,19 +94,21 @@ class Base {
   async getData(context) {
     this.storeContext = context;
 
-    let data = await this.fetch(this.url);
-    const $ = cheerio.load(data);
+    try {
+      var data = await this.fetch(this.url);
+    } catch (e) {
+      await this.logDiscord(
+        `${this.store}: couldn't scrape itemID: ${this.itemId}`
+      );
+      throw "Couldn't scrape this url, try again.";
+    }
 
     try {
-      this.storeContext.parse($);
+      this.storeContext.parse(data);
     } catch (e) {
-      if (typeof e === "object") {
-        console.error(e);
-        throw "Unexpected error occurred, try again.";
-      }
-      throw e;
+      `${this.store}: couldn't parse itemID: ${this.itemId}`;
+      throw "Couldn't parse this url, try again.";
     }
-    //console.log(`${this.store}:${this.itemId} scrapped.`);
   }
 
   /**
@@ -111,31 +117,21 @@ class Base {
   async fetch(url) {
     const config = {
       timeout: process.env.SCRAPE_INTERVAL - 500,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.2 Safari/605.1.15",
+        "Accept-Language": "en-US,en;q=0.9,es-US;q=0.8,es;q=0.7",
+      },
     };
 
+    // only use proxies in production
     if (process.env.NODE_ENV === "production") {
       let proxy = Proxy.get();
       const httpsAgent = new httpsProxyAgent(`http://${proxy}`);
       config.httpsAgent = httpsAgent;
     }
-
-    config.headers = {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.2 Safari/605.1.15",
-      "Upgrade-Insecure-Requests": "1",
-      "Accept-Language": "en-US,en;q=0.9,es-US;q=0.8,es;q=0.7",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-      "Accept-Encoding": "gzip, deflate",
-    };
-
-    try {
-      let res = await axios.get(url, config);
-      return res.data;
-    } catch (e) {
-      //console.error(`${this.store}:${this.itemId} scrape failed: ${e}`);
-      throw "Couldn't load page, try again.";
-    }
+    let res = await axios.get(url, config);
+    return res.data;
   }
 
   /**
@@ -168,6 +164,14 @@ class Base {
     this.title = title;
     this.itemId = itemId;
     this.outOfStock = outOfStock;
+  }
+
+  async logDiscord(message) {
+    try {
+      await webhookClient.send(message);
+    } catch (e) {
+      console.error("Monitor: couldn't log to discord.");
+    }
   }
 }
 
