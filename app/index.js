@@ -94,6 +94,7 @@ bot.on("message", async (msg) => {
     );
   }
 
+  // start a monitor
   if (msg.includes("!start")) {
     let usage =
       "This command starts a monitor with or without auto-buy:" +
@@ -117,6 +118,11 @@ bot.on("message", async (msg) => {
 
     if (msg.length === 2 && msg[0] === "autobuy") {
       var autobuy = true;
+    }
+
+    // if only url is passed, make autobuy argument null
+    if (msg === 1) {
+      msg = [null, msg[0]];
     }
 
     sendDm("Starting monitor...", userId);
