@@ -137,9 +137,7 @@ class Base {
       var data = await this.fetch(this.internalurl);
     } catch (e) {
       if (this.isRunning) {
-        await DiscordLogger.log(
-          `${this.store}: couldn't scrape itemID: ${this.itemId}`
-        );
+        console.error(`${this.store}: couldn't scrape itemID: ${this.itemId}`);
       }
       throw `Couldn't scrape this url.`;
     }
@@ -148,16 +146,12 @@ class Base {
       this.storeContext.parse(data);
     } catch (e) {
       if (this.isRunning) {
-        await DiscordLogger.log(
-          `${this.store}: couldn't parse itemID: ${this.itemId}`
-        );
+        console.error(`${this.store}: couldn't parse itemID: ${this.itemId}`);
       }
       throw "Couldn't parse this url.";
     }
 
-    await await DiscordLogger.log(
-      `${this.store} monitor: itemid ${this.itemId}`
-    );
+    console.log(`${this.store} monitor: itemid ${this.itemId}`);
     return { itemId: this.itemId, title: this.title };
   }
 
