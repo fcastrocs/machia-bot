@@ -222,14 +222,6 @@ bot.on("message", async (msg) => {
   }
 });
 
-function sendMessage(msg) {
-  try {
-    bot.channels.cache.get(process.env.CHANNELID).send(msg);
-  } catch (e) {
-    console.error("Couldn't send message to this channel");
-  }
-}
-
 function sendDm(msg, userId) {
   try {
     bot.users.cache.get(userId).send(msg);
@@ -256,7 +248,4 @@ bot.on("ready", async () => {
   }
 
   console.log("Bot is ready.");
-  if (process.env.NODE_ENV === "production") {
-    sendMessage("I'm back online.");
-  }
 });
