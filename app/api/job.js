@@ -1,24 +1,25 @@
-const Job = require("../services/job");
 const Credential = require("../services/credential");
-const UserItem = require("../services/userItem");
+const Buyer = require("../services/buyer");
+const Watcher = require("../services/watcher");
+const MonitorService = require("../services/monitor");
+
 const Store = require("../modules/store");
 const Monitor = require("../modules/monitor");
-const CheckerService = require("../services/checker");
 const RateLimit = require("../modules/ratelimit");
 
 const functions = new Object();
 
 /**
- * Restore all jobs
+ * Restore jobs on start
  */
 functions.restore = async function restore() {
-  if ((await Job.size()) == 0) {
+  if ((await MonitorService.size()) == 0) {
     return;
   }
 
   let promises = [];
 
-  let jobs = await Job.getAll();
+  let jobs = await MonitorService.getAll();
 
   for (let job of jobs) {
     promises.push(
@@ -48,8 +49,12 @@ functions.start = async function start(userId, autobuy, url) {
     throw "Unsupported store.";
   }
 
-  // User doesn't have credentials for this store
+  if (autobuy && !Store.isAutoBuyEnabled(store)) {
+    throw "This store does not support auto-buy.";
+  }
+
   if (userId && autobuy && !(await Credential.has(userId, store))) {
+    // User doesn't have credentials for this store
     throw "You don't have credentials for this store.";
   }
 
@@ -61,14 +66,21 @@ functions.start = async function start(userId, autobuy, url) {
   }
 
   // duplicate monitor
-  if (userId && monitor.isDuplicate()) {
-    // autobuy request
+  if (userId && (await monitor.isDuplicate())) {
+    let isBuying = await Buyer.has(userId, store, data.itemId);
+    if (isBuying) {
+      throw "You are already auto-buying this item.";
+    }
+
+    let isWatching = await Watcher.has(userId, store, data.itemId);
+    if (isWatching) {
+      throw "You are already watching this item.";
+    }
+
     if (autobuy) {
-      if (await UserItem.has(userId, data.itemId, store)) {
-        throw "You already have this product on auto-buy.";
-      } else {
-        await UserItem.add(userId, data.itemId, store, url, data.title);
-      }
+      await Buyer.add(userId, store, data.itemId);
+    } else {
+      await Watcher.add(userId, store, data.itemId);
     }
     return;
   }
@@ -76,10 +88,18 @@ functions.start = async function start(userId, autobuy, url) {
   // start monitor
   monitor.start();
 
-  // store monitor and
+  // Store monitor to map
+  MonitorService.add(store, data.itemId, null, null, monitor);
+
   if (userId) {
-    await Job.add(data.itemId, store, url);
-    await UserItem.add(userId, data.itemId, store, url, data.title);
+    // store monitor to DB
+    await MonitorService.add(store, data.itemId, url, data.title);
+    // store autobuy
+    if (autobuy) {
+      await Buyer.add(userId, store, data.itemId);
+    } else {
+      await Watcher.add(userId, store, data.itemId);
+    }
   }
 };
 
@@ -91,28 +111,31 @@ functions.stop = async function stop(userId, store, itemId) {
     throw "Unsupported store.";
   }
 
-  if (!(await Job.has(itemId, store))) {
-    throw "I am not tracking this item.";
+  if (!MonitorService.has("map", store, itemId)) {
+    throw "Monitor doesn't exist.";
   }
 
-  if (!CheckerService.has(store, itemId)) {
-    throw "Checker doesn't exist.";
+  let isBuying = await Buyer.has(userId, store, itemId);
+  let isWatching = await Watcher.has(userId, store, itemId);
+
+  if (!isBuying && !isWatching) {
+    throw "You are not either auto-buying or watching this item.";
   }
 
-  if (!(await UserItem.has(userId, itemId, store))) {
-    throw "You are not tracking this item.";
-  }
+  let watchingCount = await Watcher.getItemWatchers(store, itemId);
+  let buyingCount = await Buyer.getItemBuyers(store, itemId);
+  let total = watchingCount + buyingCount;
 
-  // other users still want to buy this item
-  if ((await UserItem.getAll(null, store, itemId)).length > 1) {
-    await UserItem.remove(userId, itemId, store);
+  if (isBuying) return await Buyer.remove(userId, store, itemId);
+  if (isWatching) return await Watcher.remove(userId, store, itemId);
+
+  // more people want to buy or watch this item
+  if (total > 1) {
     return;
   }
 
-  // no one else wants to buy this item
-  await Job.remove(itemId, store);
-  await UserItem.remove(userId, itemId, store);
-  let checker = CheckerService.remove(store, itemId);
+  // nobody else is buying or watching this item
+  let checker = await MonitorService.remove(store, itemId);
   checker.stop();
 };
 
@@ -122,7 +145,7 @@ functions.stop = async function stop(userId, store, itemId) {
 functions.list = async function list() {
   let map = new Map();
 
-  let docs = await Job.getAll();
+  let docs = await MonitorService.getAll();
   if (docs.length === 0) return null;
 
   for (let doc of docs) {
@@ -148,7 +171,7 @@ functions.list = async function list() {
 functions.myList = async function myList(userId, store) {
   let array = [];
 
-  let docs = await UserItem.getAll(userId, store);
+  let docs = await Buyer.getUserStore(userId, store);
 
   for (let doc of docs) {
     let obj = {

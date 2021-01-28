@@ -2,7 +2,6 @@
 
 const Discord = require("discord.js");
 const mongoose = require("mongoose");
-const emitter = require("./modules/emitter");
 const Job = require("./api/job");
 const Credential = require("./api/credential");
 const Test = require("./api/test");
@@ -105,7 +104,7 @@ bot.on("message", async (msg) => {
       return sendDm(usage, userId);
     }
 
-    let msg = msg.replace("!start ", "");
+    msg = msg.replace("!start ", "");
     msg = msg.split(" ");
 
     if (msg.length !== 1 && msg.length !== 2) {
@@ -121,7 +120,7 @@ bot.on("message", async (msg) => {
     }
 
     // if only url is passed, make autobuy argument null
-    if (msg === 1) {
+    if (msg.length === 1) {
       msg = [null, msg[0]];
     }
 
@@ -130,6 +129,7 @@ bot.on("message", async (msg) => {
     try {
       await Job("start", userId, msg);
     } catch (e) {
+      console.error(e);
       return sendDm(e, userId);
     }
 
@@ -238,92 +238,6 @@ function sendDm(msg, userId) {
   }
 }
 
-/**
- * Catch and handle any events
- */
-function events() {
-  emitter.on("autobuy-finished", async (results) => {
-    let rejected = results.get("rejected");
-    let fulfilled = results.get("fulfilled");
-    let total = rejected.length + fulfilled.length;
-
-    let gotOne = "";
-    for (let userId of fulfilled) {
-      gotOne += (await getUsername(userId)) + ", ";
-    }
-    gotOne = gotOne.slice(0, -2);
-
-    let didntGetOne = "";
-    for (let value of rejected) {
-      didntGetOne += (await getUsername(value.userId)) + ", ";
-    }
-    didntGetOne = didntGetOne.slice(0, -2);
-
-    const embed = {
-      title: "Purchases Results",
-      timestamp: new Date(),
-    };
-
-    let fields = [];
-    if (gotOne) {
-      fields.push({
-        name: "Users who got one",
-        value: gotOne,
-      });
-    }
-
-    if (didntGetOne) {
-      fields.push({
-        name: "Users who didn't get one",
-        value: didntGetOne,
-      });
-    }
-
-    embed.fields = fields;
-
-    if (rejected.length === total) {
-      embed.description = "I suck, I wasn't able to buy one for any user.";
-      embed.color = 15158332; //red
-      return sendMessage({ embed });
-    }
-
-    if (fulfilled.length === total) {
-      embed.description = "I am god, I bought one for every user.";
-      embed.color = 3066993; //greed
-      return sendMessage({ embed });
-    }
-
-    embed.description = "I wasn't able to buy one for every user";
-    embed.color = 10181046; //purple
-    return sendMessage({ embed });
-  });
-
-  emitter.on("autobuyer-start", (values) => {
-    console.log(values);
-    const embed = {
-      title: "Product is in stock, I am attemping purchases now!",
-      description: `[${values.title}](${values.url})`,
-      color: 12745742,
-      timestamp: new Date(),
-    };
-
-    sendMessage({ embed });
-  });
-}
-
-async function getUsername(userId) {
-  if (bot.users.cache.get(userId)) {
-    return bot.users.cache.get(userId).username;
-  }
-
-  try {
-    let user = await bot.users.fetch(userId);
-    return user.username;
-  } catch (e) {
-    return null;
-  }
-}
-
 bot.on("ready", async () => {
   // Restore Jobs
   console.log("Connecting to DB...");
@@ -341,7 +255,6 @@ bot.on("ready", async () => {
     await Job("restore");
   }
 
-  events();
   console.log("Bot is ready.");
   if (process.env.NODE_ENV === "production") {
     sendMessage("I'm back online.");

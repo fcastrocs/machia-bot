@@ -3,27 +3,26 @@
 const axios = require("axios").default;
 const httpsProxyAgent = require("https-proxy-agent");
 
-const CheckerService = require("../../services/checker");
+const MonitorService = require("../../services/monitor");
+const Buyer = require("../../services/buyer");
+const Watcher = require("../../services/watcher");
+
 const Autobuyer = require("../autobuyer");
-const UserItem = require("../../services/userItem");
-const Job = require("../../services/job");
 const Proxy = require("../proxy");
-const Discord = require("discord.js");
-const webhookClient = new Discord.WebhookClient(
-  process.env.WEBHOOK_CHANNELID,
-  process.env.WEBHOOK_TOKEN
-);
+const DiscordLogger = require("../discordlogger");
 
 class Base {
   constructor(url, store) {
     this.url = url;
+    // some monitors scrape from an api, not the url given by user.
+    this.internalurl = url;
     this.store = store;
 
     this.interval = null;
 
     this.title = null;
     this.itemId = null;
-    this.outOfStock = false;
+    this.outOfStock = true;
 
     this.storeContext = null;
     this.isRunning = false;
@@ -31,23 +30,22 @@ class Base {
   }
 
   /**
-   * Starts checking interval, and autobuy when available.
+   * Starts monitor interval
    */
-  start(ignore) {
-    if (!ignore && this.isDuplicate()) {
-      throw "A checker for this URL is already running.";
+  async start(ignore) {
+    if (!ignore && (await this.isDuplicate())) {
+      throw "A monitor for this URL is already running.";
     }
 
     if (this.isRunning) {
-      throw "This checker is already running.";
+      throw "This monitor is already running.";
     }
-
-    // store this instance
-    CheckerService.add(this.store, this.itemId, this.storeContext);
 
     this.isRunning = true;
 
+    // start interval
     this.interval = setInterval(async () => {
+      // avoid any possible race condition
       if (this.isAutoBuying) return;
 
       try {
@@ -56,15 +54,28 @@ class Base {
         return;
       }
 
+      // product is not available
       if (!this.isAvailable()) {
         return;
       }
 
-      // stop checker
+      // stop monitor
       this.stop();
 
-      // Start autobuy
+      let watchers = await Watcher.getItemWatchers(this.store, this.itemId);
+      let buyers = await Buyer.getItemBuyers(this.store, this.itemId);
+
+      // send discord notifications
+      await this.notifyOnDiscord(watchers, buyers);
+
+      // There's no buyers
+      if (buyers.length === 0) {
+        return await MonitorService.remove(this.store, this.itemId);
+      }
+
+      // Start autobuyer
       this.isAutoBuying = true;
+
       let autobuyer = new Autobuyer(
         this.url,
         this.store,
@@ -72,14 +83,11 @@ class Base {
         this.title
       );
       await autobuyer.start();
-      // get users who wanted to buy this item
-      let docs = await UserItem.getAll(null, this.store, this.itemId);
 
-      // remove job and checker because all users bought the item
-      if (docs.length === 0) {
-        CheckerService.remove(this.store, this.itemId);
-        await Job.remove(this.itemId, this.store);
-        return;
+      // no more buyers after auto-buyer finishes, remove monitor
+      buyers = await Buyer.getItemBuyers(this.store, this.itemId);
+      if (buyers.length === 0) {
+        return await MonitorService.remove(this.store, this.itemId);
       }
 
       // There are still users who want to buy this item.
@@ -89,28 +97,82 @@ class Base {
   }
 
   /**
-   * Scrape necessary info such as title and availability
+   * Notifies all watchers and buyers then removes watchers from DB
+   */
+  async notifyOnDiscord(watchers, buyers) {
+    let mentions = "";
+    for (let watcher of watchers) {
+      mentions += `<@${watcher.userId}> `;
+    }
+
+    for (let buyer of buyers) {
+      mentions += `<@${buyer.userId}> `;
+    }
+
+    await DiscordLogger.notify(mentions);
+
+    await DiscordLogger.onStockNotification({
+      title: this.title,
+      url: this.url,
+    });
+    Watcher.removeItemWatchers(this.store, this.itemId);
+  }
+
+  /**
+   * Stop checker
+   */
+  stop() {
+    if (!this.isRunning) return;
+    clearInterval(this.interval);
+    this.isRunning = false;
+  }
+
+  /**`
+   * Scrape itemId, title, availability
    */
   async getData(context) {
     this.storeContext = context;
 
     try {
-      var data = await this.fetch(this.url);
+      var data = await this.fetch(this.internalurl);
     } catch (e) {
-      await this.logDiscord(
-        `${this.store}: couldn't scrape itemID: ${this.itemId}`
-      );
+      if (this.isRunning) {
+        await DiscordLogger.log(
+          `${this.store}: couldn't scrape itemID: ${this.itemId}`
+        );
+      }
       throw `Couldn't scrape this url.`;
     }
 
     try {
       this.storeContext.parse(data);
     } catch (e) {
-      `${this.store}: couldn't parse itemID: ${this.itemId}`;
+      if (this.isRunning) {
+        await DiscordLogger.log(
+          `${this.store}: couldn't parse itemID: ${this.itemId}`
+        );
+      }
       throw "Couldn't parse this url.";
     }
 
+    await await DiscordLogger.log(
+      `${this.store} monitor: itemid ${this.itemId}`
+    );
     return { itemId: this.itemId, title: this.title };
+  }
+
+  /**
+   * Check whether a checker for this product already exists.
+   */
+  async isDuplicate() {
+    return await MonitorService.has("map", this.store, this.itemId);
+  }
+
+  /**
+   * Returns whether product is available to purchase
+   */
+  isAvailable() {
+    return !this.outOfStock;
   }
 
   /**
@@ -120,9 +182,10 @@ class Base {
     const config = {
       timeout: process.env.SCRAPE_INTERVAL - 500,
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.2 Safari/605.1.15",
-        "Accept-Language": "en-US,en;q=0.9,es-US;q=0.8,es;q=0.7",
+        "Accept-Language": "en-US,en;q=0.5",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
       },
     };
 
@@ -137,47 +200,12 @@ class Base {
   }
 
   /**
-   * Stop checker
-   */
-  stop() {
-    if (!this.isRunning) return;
-    clearInterval(this.interval);
-    this.isRunning = false;
-  }
-
-  /**
-   * Check whether a checker for this product already exists.
-   */
-  isDuplicate() {
-    return CheckerService.has(this.store, this.itemId);
-  }
-
-  /**
-   * Returns whether product is available to purchase
-   */
-  isAvailable() {
-    return !this.outOfStock;
-  }
-
-  /**
    * Setter for scraped product data
    */
   setValues(title, itemId, outOfStock) {
     this.title = title;
     this.itemId = itemId;
     this.outOfStock = outOfStock;
-  }
-
-  /**
-   *
-   * Sends log message to discord channel
-   */
-  async logDiscord(message) {
-    try {
-      await webhookClient.send(message);
-    } catch (e) {
-      console.error("Monitor: couldn't log to discord.");
-    }
   }
 }
 

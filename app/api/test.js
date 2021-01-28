@@ -1,6 +1,6 @@
 const Credential = require("../services/credential");
 const Store = require("../modules/store");
-const Checker = require("../modules/checker");
+const Checker = require("../modules/monitor");
 const RateLimit = require("../modules/ratelimit");
 const AutoBuyer = require("../modules/autobuyer");
 

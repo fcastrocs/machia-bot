@@ -1,28 +1,30 @@
 const fs = require("fs");
 const Stores = JSON.parse(fs.readFileSync("./app/configs/stores.json"));
 
-class Store {}
-
-Store.has = (key) => {
+function has(key) {
   if (Stores[key]) return true;
   return false;
-};
+}
 
-Store.getURL = (key) => {
-  return Stores[key];
-};
+function getURL(key) {
+  return Stores[key].url;
+}
 
-Store.list = () => {
+function list() {
   return Object.keys(Stores);
-};
+}
 
-Store.urlToStore = (url) => {
+function urlToStore(url) {
   for (let key in Stores) {
-    if (url.includes(Stores[key])) {
+    if (url.includes(Stores[key].url)) {
       return key;
     }
   }
   return null;
-};
+}
 
-module.exports = Store;
+function isAutoBuyEnabled(store) {
+  return Stores[store].autobuy;
+}
+
+module.exports = { has, getURL, list, urlToStore, isAutoBuyEnabled };

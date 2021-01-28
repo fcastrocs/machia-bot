@@ -1,6 +1,14 @@
 {
-  "newegg": "https://www.newegg.com/",
-  "bestbuy": "https://www.bestbuy.com/",
-  "bhphotovideo": "https://www.bhphotovideo.com/",
-  "nike": "https://www.nike.com/"
+  "newegg": {
+    "url": "https://www.newegg.com/",
+    "autobuy": false
+  },
+  "bestbuy": {
+    "url": "https://www.bestbuy.com/",
+    "autobuy": true
+  },
+  "bhphotovideo": {
+    "url": "https://www.bhphotovideo.com/",
+    "autobuy": true
+  }
 }

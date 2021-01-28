@@ -6,17 +6,17 @@
 "use strict";
 
 const { firefox } = require("playwright");
-// puppeteer launch options
 const launchOptions = require("../../configs/puppeteer");
 
 const retry = require("retry");
-const emitter = require("../emitter");
 const axios = require("axios").default;
 
-const UserItem = require("../../services/userItem");
+const Buyer = require("../../services/buyer");
 const Credential = require("../../services/credential");
+
 const StoreLogin = require("../storelogin");
 const httpsProxyAgent = require("https-proxy-agent");
+const DiscordLogger = require("../discordlogger");
 
 class Base {
   constructor(url, store, itemId, title) {
@@ -52,7 +52,7 @@ class Base {
     this.storeContext = storeContext;
     console.log("Auto-Purchase is starting...");
 
-    emitter.emit("autobuyer-start", { url: this.url, title: this.title });
+    await DiscordLogger.notify(`Attempting purchases for ${this.title}`);
 
     let credentials = await this.getAllBuyerCredentials();
     // attemp purchases
@@ -72,7 +72,7 @@ class Base {
       let msg = "";
 
       if (res.status === "fulfilled") {
-        await UserItem.remove(res.value, this.itemId, this.store);
+        await Buyer.remove(res.value, this.store, this.itemId);
         results.get("fulfilled").push(res.value);
       } else {
         if (typeof res.reason.err === "object") {
@@ -86,17 +86,14 @@ class Base {
       }
     }
 
-    emitter.emit("autobuy-finished", results);
+    await DiscordLogger.buyersNotification(results, this.title);
   }
 
   /**
    * Get credentials[] of all users who want to buy this item
    */
   async getAllBuyerCredentials() {
-    let docs = await UserItem.getAll(null, this.store, this.itemId);
-    if (docs.length === 0) {
-      throw "No user wants to buy this item";
-    }
+    let docs = await Buyer.getItemBuyers(this.store, this.itemId);
 
     let credentials = new Array();
 

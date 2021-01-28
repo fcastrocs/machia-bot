@@ -5,14 +5,15 @@ const Base = require("../base");
 class Bestbuy extends Base {
   constructor(url) {
     let res = url.match(/(skuId=)([0-9]{7,8})$/);
-    if (res.lenght !== 3) {
+    if (!res || res.length !== 3) {
       throw "Bad URL.";
     }
 
     let skuid = res[2];
-    url = `https://www.bestbuy.com/api/3.0/priceBlocks?skus=${skuid}`;
+    let internalurl = `https://www.bestbuy.com/api/3.0/priceBlocks?skus=${skuid}`;
 
     super(url, "bestbuy");
+    super.internalurl = internalurl;
   }
 
   getData() {
