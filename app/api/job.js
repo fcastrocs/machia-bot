@@ -119,12 +119,12 @@ functions.stop = async function stop(userId, store, itemId) {
   let isWatching = await Watcher.has(userId, store, itemId);
 
   if (!isBuying && !isWatching) {
-    throw "You are not either auto-buying or watching this item.";
+    throw "You are not auto-buying or watching this item.";
   }
 
   let watchingCount = await Watcher.getItemWatchers(store, itemId);
   let buyingCount = await Buyer.getItemBuyers(store, itemId);
-  let total = watchingCount + buyingCount;
+  let total = watchingCount.length + buyingCount.length;
 
   if (isBuying) return await Buyer.remove(userId, store, itemId);
   if (isWatching) return await Watcher.remove(userId, store, itemId);
