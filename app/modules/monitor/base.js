@@ -115,7 +115,7 @@ class Base {
       title: this.title,
       url: this.url,
     });
-    Watcher.removeItemWatchers(this.store, this.itemId);
+    await Watcher.removeItemWatchers(this.store, this.itemId);
   }
 
   /**
