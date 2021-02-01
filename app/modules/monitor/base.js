@@ -151,7 +151,11 @@ class Base {
       var data = await this.fetch(this.internalurl);
     } catch (e) {
       if (this.isRunning) {
-        console.error(`${this.store}: couldn't scrape itemID: ${this.itemId}`);
+        if (process.env.LOGS !== "off") {
+          console.error(
+            `${this.store}: couldn't scrape itemID: ${this.itemId}`
+          );
+        }
       }
       throw `Couldn't scrape this url.`;
     }
@@ -160,12 +164,16 @@ class Base {
       this.storeContext.parse(data);
     } catch (e) {
       if (this.isRunning) {
-        console.error(`${this.store}: couldn't parse itemID: ${this.itemId}`);
+        if (process.env.LOGS !== "off") {
+          console.error(`${this.store}: couldn't parse itemID: ${this.itemId}`);
+        }
       }
       throw "Couldn't parse this url.";
     }
 
-    console.log(`${this.store} monitor: itemid ${this.itemId}`);
+    if (process.env.LOGS !== "off") {
+      console.log(`${this.store} monitor: itemid ${this.itemId}`);
+    }
     return { itemId: this.itemId, title: this.title };
   }
 

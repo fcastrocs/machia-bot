@@ -220,6 +220,16 @@ bot.on("message", async (msg) => {
     }
     return;
   }
+
+  if (msg === "!logs off") {
+    process.env.LOGS = "off";
+    return;
+  }
+
+  if (msg === "!logs on") {
+    process.env.LOGS = "on";
+    return;
+  }
 });
 
 function sendDm(msg, userId) {

@@ -29,9 +29,9 @@ class Bestbuy extends Base {
 
     let buttonState = obj.buttonState;
 
-    let outOfStock = true;
+    let outOfStock = false;
     if (buttonState.displayText.toLowerCase() === "sold out") {
-      outOfStock = false;
+      outOfStock = true;
     }
 
     let title = obj.names.short;
