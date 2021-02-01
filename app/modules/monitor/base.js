@@ -96,6 +96,20 @@ class Base {
     }, process.env.SCRAPE_INTERVAL);
   }
 
+  async startBuying(buyers) {
+    if (buyers.length === 0) return;
+    // Start autobuyer
+    this.isAutoBuying = true;
+
+    let autobuyer = new Autobuyer(
+      this.url,
+      this.store,
+      this.itemId,
+      this.title
+    );
+    await autobuyer.start();
+  }
+
   /**
    * Notifies all watchers and buyers then removes watchers from DB
    */

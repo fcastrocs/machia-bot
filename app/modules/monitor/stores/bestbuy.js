@@ -30,7 +30,7 @@ class Bestbuy extends Base {
     let buttonState = obj.buttonState;
 
     let outOfStock = true;
-    if (buttonState.displayText.toLowerCase() === "add to cart") {
+    if (buttonState.displayText.toLowerCase() === "sold out") {
       outOfStock = false;
     }
 
