@@ -98,9 +98,7 @@ class Base {
   async launchBrowser() {
     // only open a browser if page wasnt passed, this means request came from autobuyer
     if (!this.autoBuyerRequest) {
-      Base.launchOptions.proxy = {
-        server: `http://${this.proxy}`,
-      };
+      Base.launchOptions.args.push(`--proxy-server=http://${this.proxy}`);
       this.browser = await puppeteer.launch(Base.launchOptions);
       this.page = await this.browser.newPage();
     }
