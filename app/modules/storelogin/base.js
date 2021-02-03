@@ -2,7 +2,9 @@
 
 const Verification = require("../../services/verification");
 const Credential = require("../../services/credential");
-const { firefox } = require("playwright");
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
 
 class Base {
   constructor(store) {
@@ -99,9 +101,8 @@ class Base {
       Base.launchOptions.proxy = {
         server: `http://${this.proxy}`,
       };
-      this.browser = await firefox.launch(Base.launchOptions);
-      const context = await this.browser.newContext();
-      this.page = await context.newPage();
+      this.browser = await puppeteer.launch(Base.launchOptions);
+      this.page = await this.browser.newPage();
     }
   }
 

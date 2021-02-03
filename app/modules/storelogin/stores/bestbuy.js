@@ -21,6 +21,8 @@ class Bestbuy extends Base {
       await this.launchBrowser();
       await this.page.goto(LOGIN_URL);
 
+      await this.page.waitForTimeout(5000);
+
       // Enter email
       let input = await this.page.waitForSelector("#fld-e", { visible: true });
       await input.type(this.email);
@@ -49,14 +51,12 @@ class Bestbuy extends Base {
       var res = await p[0].json();
     } catch (error) {
       // successful login
-      let context = await this.page.context();
-      return await context.cookies();
+      return await this.page.cookies();
     }
 
     // Sometimes it sends 'success' status? verify this later
     if (res.status === "success") {
-      let context = await this.page.context();
-      return await context.cookies();
+      return await this.page.cookies();
     }
 
     if (res.status === "stepUpRequired") {
@@ -101,13 +101,11 @@ class Bestbuy extends Base {
       var res = await p[0].json();
     } catch (e) {
       //successful verify
-      let context = await this.page.context();
-      return await context.cookies();
+      return await this.page.cookies();
     }
 
     if (res.status === "success") {
-      let context = await this.page.context();
-      return await context.cookies();
+      return await await this.page.cookies();
     }
 
     if (res.status === "failure") {
